@@ -1,35 +1,32 @@
-import path from 'path';
-import fs from 'fs';
+import data from '../data/powerapp.json' assert { type: 'json' };
 
 export default function handler(req, res) {
-  const filePath = path.join(process.cwd(), 'data', 'powerapp.json');
-  if (!fs.existsSync(filePath)) {
-    return res.status(404).json({ error: 'File not found' });
+  const headers = data[0];
+  const colIndex = {
+    machine: headers.indexOf('Máy'),
+    rpro: headers.indexOf('RPRO'),
+    brand: headers.indexOf('Brand Code'),
+    productType: headers.indexOf('Product Type'),
+    pu: headers.indexOf('PU'),
+    quantity: headers.indexOf('Sản lượng'),
+  };
+
+  const results = [];
+
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    results.push({
+      machine: row[colIndex.machine],
+      order: row[colIndex.rpro],
+      brandCode: row[colIndex.brand],
+      productType: row[colIndex.productType],
+      pu: row[colIndex.pu],
+      quantity: parseInt(row[colIndex.quantity], 10) || 0,
+    });
   }
 
-  const raw = fs.readFileSync(filePath, 'utf-8');
-  const rows = JSON.parse(raw);
+  const { machine } = req.query;
 
-  const headers = rows[0];
-  const data = rows.slice(1);
-
-  const machineIndex = headers.indexOf('Máy');
-  const puIndex = headers.indexOf('PU');
-  const quantityIndex = headers.indexOf('Sản lượng');
-
-  const grouped = {};
-
-  for (const row of data) {
-    const machine = row[machineIndex];
-    const pu = row[puIndex];
-    const qty = parseInt(row[quantityIndex], 10) || 0;
-
-    if (!grouped[machine]) grouped[machine] = {};
-
-    if (!grouped[machine][pu]) grouped[machine][pu] = [];
-
-    grouped[machine][pu].push(row);
-  }
-
-  res.status(200).json({ headers, grouped });
+  const filtered = results.filter(r => r.machine === machine);
+  res.status(200).json(filtered);
 }

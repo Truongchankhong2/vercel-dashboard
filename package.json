@@ -1,11 +1,12 @@
 {
   "name": "vercel-dashboard",
   "version": "1.0.0",
-  "description": "Dashboard chạy song song local + Vercel",
-  "main": "index.js",
+  "description": "Dashboard for monitoring production schedule",
   "type": "module",
+  "main": "server.js",
   "scripts": {
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "start": "node server.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
