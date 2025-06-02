@@ -21,7 +21,6 @@ function formatNumber(num) {
   return Number(num).toLocaleString('en-US');
 }
 
-// --- Hide/show ---
 function hideDetails() {
   detailsContainer.innerHTML = '';
   detailsContainer.classList.add('hidden');
@@ -31,7 +30,81 @@ function showDetails() {
   detailsContainer.classList.remove('hidden');
 }
 
-// --- RAW VIEW ---
+// --- Summary View ---
+async function loadSummary() {
+  setBtnLoading(btnSummary, true);
+  hideDetails();
+  try {
+    const res = await fetch('/api/summary');
+    const data = await res.json();
+
+    console.log('[DEBUG] Summary data:', data);
+
+    if (!Array.isArray(data) || data.length === 0) {
+      container.innerHTML = '<div class="text-center py-4">Không có dữ liệu summary</div>';
+      return;
+    }
+
+    const withMachine = data.filter(d => d.machine?.trim());
+    const withoutMachine = data.filter(d => !d.machine?.trim());
+
+    withMachine.sort((a, b) => {
+      const aNum = parseInt((a.machine.match(/\d+$/) || ['0'])[0]);
+      const bNum = parseInt((b.machine.match(/\d+$/) || ['0'])[0]);
+      return aNum - bNum;
+    });
+
+    const sorted = [...withMachine, ...withoutMachine];
+
+    let html = `
+      <table id="summary-table" class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Machine</th>
+            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total Quantity</th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+    `;
+
+    let totalAll = 0;
+    sorted.forEach(({ machine, total }) => {
+      totalAll += total;
+      html += `
+        <tr data-machine="${machine}" class="hover:bg-gray-100 cursor-pointer">
+          <td class="px-6 py-4 text-sm text-gray-900">${machine || '<blank>'}</td>
+          <td class="px-6 py-4 text-sm text-gray-900 text-right">${formatNumber(total)}</td>
+        </tr>
+      `;
+    });
+
+    html += `
+        <tr class="font-bold bg-gray-100">
+          <td class="px-6 py-3 text-sm text-gray-700 text-right">Tổng cộng:</td>
+          <td class="px-6 py-3 text-sm text-gray-900 text-right">${formatNumber(totalAll)}</td>
+        </tr>
+      </tbody>
+    </table>`;
+
+    container.innerHTML = html;
+
+    document.querySelectorAll('#summary-table tbody tr[data-machine]').forEach(tr => {
+      tr.addEventListener('click', () => {
+        const machine = tr.dataset.machine;
+        loadDetails(machine);
+      });
+    });
+
+    updateTimestamp();
+  } catch (e) {
+    console.error('[ERROR] loadSummary failed:', e);
+    container.innerHTML = '<div class="text-center text-red-500 py-4">Lỗi tải dữ liệu summary</div>';
+  } finally {
+    setBtnLoading(btnSummary, false);
+  }
+}
+
+// --- Raw View ---
 async function loadRaw() {
   setBtnLoading(btnRaw, true);
   hideDetails();
@@ -67,75 +140,7 @@ async function loadRaw() {
   }
 }
 
-// --- SUMMARY VIEW ---
-async function loadSummary() {
-  setBtnLoading(btnSummary, true);
-  hideDetails();
-  try {
-    const res = await fetch('/api/summary');
-    const data = await res.json();
-
-    if (!Array.isArray(data) || data.length === 0) {
-      container.innerHTML = '<div class="text-center py-4">Không có dữ liệu summary</div>';
-    } else {
-      const withName = data.filter(d => d.machine?.trim());
-      const withoutName = data.filter(d => !d.machine?.trim());
-      withName.sort((a, b) => {
-        const nA = parseInt((a.machine.match(/\d+$/) || ['0'])[0], 10);
-        const nB = parseInt((b.machine.match(/\d+$/) || ['0'])[0], 10);
-        return nA - nB;
-      });
-      const sorted = [...withName, ...withoutName];
-
-      let html = `
-        <table id="summary-table" class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50">
-            <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Machine</th>
-              <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total Quantity</th>
-            </tr>
-          </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
-      `;
-
-      let totalAll = 0;
-      sorted.forEach(({ machine, total }) => {
-        totalAll += total;
-        html += `
-          <tr data-machine="${machine}" class="hover:bg-gray-100 cursor-pointer">
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${machine || '<blank>'}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">${formatNumber(total)}</td>
-          </tr>
-        `;
-      });
-
-      html += `
-          <tr class="font-bold bg-gray-100">
-            <td class="px-6 py-3 text-sm text-gray-700 text-right">Tổng cộng:</td>
-            <td class="px-6 py-3 text-sm text-gray-900 text-right">${formatNumber(totalAll)}</td>
-          </tr>
-        </tbody>
-      </table>`;
-
-      container.innerHTML = html;
-
-      document.querySelectorAll('#summary-table tbody tr').forEach(tr => {
-        tr.addEventListener('click', () => {
-          const machine = tr.dataset.machine;
-          loadDetails(machine);
-        });
-      });
-    }
-    updateTimestamp();
-  } catch (e) {
-    console.error(e);
-    container.innerHTML = '<div class="text-center text-red-500 py-4">Lỗi tải summary</div>';
-  } finally {
-    setBtnLoading(btnSummary, false);
-  }
-}
-
-// --- MACHINE DETAILS VIEW ---
+// --- Load Machine Details ---
 async function loadDetails(machine) {
   showDetails();
   detailsContainer.innerHTML = '<div class="text-center py-4">Loading details…</div>';
@@ -148,12 +153,7 @@ async function loadDetails(machine) {
       return;
     }
 
-    // Sort by PU and Order
-    details.sort((a, b) => {
-      const puCompare = (a.pu || '').localeCompare(b.pu || '');
-      if (puCompare !== 0) return puCompare;
-      return (a.order || '').localeCompare(b.order || '');
-    });
+    details.sort((a, b) => (a.pu || '').localeCompare(b.pu || ''));
 
     let html = `<h2 class="text-lg font-semibold mb-2">Chi tiết đơn cho: ${machine}</h2>`;
     html += `<table class="min-w-full divide-y divide-gray-200">
@@ -169,17 +169,16 @@ async function loadDetails(machine) {
       <tbody class="bg-white divide-y divide-gray-200">`;
 
     let lastPU = null;
-    let groupIndex = 0;
-    const colorClasses = ['bg-white', 'bg-gray-50', 'bg-blue-50', 'bg-green-50', 'bg-yellow-50', 'bg-red-50'];
+    let toggleColor = false;
 
     for (const d of details) {
       if (d.pu !== lastPU) {
+        toggleColor = !toggleColor;
         lastPU = d.pu;
-        groupIndex++;
       }
-      const bgColor = colorClasses[groupIndex % colorClasses.length];
+
       html += `
-        <tr class="${bgColor}">
+        <tr class="${toggleColor ? 'bg-gray-50' : ''}">
           <td class="px-4 py-2 text-sm text-gray-800 whitespace-nowrap">${d.order}</td>
           <td class="px-4 py-2 text-sm text-gray-800 whitespace-nowrap">${d.brandCode}</td>
           <td class="px-4 py-2 text-sm text-gray-800 whitespace-nowrap">${d.productType}</td>
@@ -196,7 +195,7 @@ async function loadDetails(machine) {
   }
 }
 
-// --- SEARCH ORDERS ---
+// --- Search Orders ---
 async function searchOrders() {
   const input = document.getElementById('searchBox').value.trim();
   const resultEl = document.getElementById('searchResult');
@@ -209,6 +208,8 @@ async function searchOrders() {
   if (!data || data.length <= 1) return;
 
   const results = [];
+  const header = data[0];
+
   for (const code of orderList) {
     const found = data.find(row => String(row[2] || '').toUpperCase() === code);
     if (found) {
