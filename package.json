@@ -9,8 +9,10 @@
     "start": "node server.js"
   },
   "dependencies": {
+    "@tailwindcss/vite": "^4.1.8",
     "cors": "^2.8.5",
     "express": "^4.18.2",
+    "tailwindcss": "^4.1.8",
     "xlsx": "^0.18.5"
   }
 }
