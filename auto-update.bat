@@ -1,19 +1,16 @@
 @echo off
-setlocal
-
-:: 💼 Truy cập thư mục dự án
 cd /d "C:\Users\truong.nx1\Ortholite Vietnam\OVN Production - Documents\PRODUCTION\TRUONG OFFICE\WEEKLY REPORT\WE ARE BETTER\vercel-dashboard"
 
-:: 🔍 Thêm file Excel nếu có thay đổi
-git add api\Powerapp.xlsx
+echo ✅ Đang sao chép Powerapp.xlsx vào thư mục /data...
+copy /Y "C:\Users\truong.nx1\Ortholite Vietnam\OVN Production - Documents\PRODUCTION\Hiền\Production Schedule Control\Powerapp.xlsx" ".\data\Powerapp.xlsx"
 
-git diff --cached --quiet
-if errorlevel 1 (
-    git commit -m "♻️ Auto update Powerapp.xlsx at %date% %time%"
-    git push origin main
-) else (
-    echo ✅ No changes detected. Nothing to push.
-)
+echo 🔄 Đang chuyển đổi Powerapp.xlsx sang powerapp.json...
+call node convert-to-json.js
 
-endlocal
+echo 🌀 Đang cập nhật Git...
+git add .
+git commit -m "♻️ Auto update at %date% %time%"
+git push origin main
+
+echo ✅ Hoàn tất cập nhật!
 pause
