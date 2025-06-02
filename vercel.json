@@ -1,10 +1,19 @@
 {
+  "version": 2,
   "builds": [
-    { "src": "api/**/*.js", "use": "@vercel/node" },
-    { "src": "public/**", "use": "@vercel/static" }
+    {
+      "src": "api/**/*.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "public/**",
+      "use": "@vercel/static"
+    }
   ],
   "routes": [
+    // Route cho mọi request /api/<tên> → chạy function tương ứng
     { "src": "/api/(.*)", "dest": "/api/$1.js" },
+    // Mặc định, mọi route khác (subpath) đều trả về index.html (SPA style)
     { "src": "/(.*)", "dest": "/public/index.html" }
   ]
 }

@@ -1,16 +1,32 @@
 @echo off
-cd /d "C:\Users\truong.nx1\Ortholite Vietnam\OVN Production - Documents\PRODUCTION\TRUONG OFFICE\WEEKLY REPORT\WE ARE BETTER\vercel-dashboard"
+cd /d "%~dp0"
 
-echo ✅ Đang sao chép Powerapp.xlsx vào thư mục /data...
-copy /Y "C:\Users\truong.nx1\Ortholite Vietnam\OVN Production - Documents\PRODUCTION\Hiền\Production Schedule Control\Powerapp.xlsx" ".\data\Powerapp.xlsx"
+echo --------------------------
+echo ✅ BẮT ĐẦU CẬP NHẬT DỮ LIỆU
+echo --------------------------
 
+:: Chạy convert Powerapp.xlsx -> powerapp.json
 echo 🔄 Đang chuyển đổi Powerapp.xlsx sang powerapp.json...
-call node convert-to-json.js
+node convert-to-json.js
+IF %ERRORLEVEL% NEQ 0 (
+    echo ❌ Lỗi khi convert dữ liệu. Dừng lại.
+    pause
+    exit /b
+)
 
-echo 🌀 Đang cập nhật Git...
-git add .
-git commit -m "♻️ Auto update at %date% %time%"
-git push origin main
+:: Thêm file JSON vào git
+echo 📝 Đang thêm file mới vào git...
+git add public/powerapp.json
 
-echo ✅ Hoàn tất cập nhật!
+:: Commit với thời gian hiện tại
+set now=%date% %time%
+git commit -m "Auto update at %now%"
+
+:: Push lên GitHub
+echo ⬆️  Đang đẩy dữ liệu lên GitHub...
+git push
+
+echo --------------------------
+echo ✅ HOÀN TẤT CẬP NHẬT
+echo --------------------------
 pause

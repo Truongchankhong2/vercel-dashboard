@@ -39,18 +39,19 @@ async function loadSummary() {
     const data = await res.json();
 
     console.log('[DEBUG] Summary data:', data);
-
     if (!Array.isArray(data) || data.length === 0) {
       container.innerHTML = '<div class="text-center py-4">Không có dữ liệu summary</div>';
       return;
     }
 
+    // Tách những máy có tên (machine không rỗng) và không có tên
     const withMachine = data.filter(d => d.machine?.trim());
     const withoutMachine = data.filter(d => !d.machine?.trim());
 
+    // Sắp xếp máy theo số cuối (nếu có) (VD: LAMINATION 1, LAMINATION 2…)
     withMachine.sort((a, b) => {
-      const aNum = parseInt((a.machine.match(/\d+$/) || ['0'])[0]);
-      const bNum = parseInt((b.machine.match(/\d+$/) || ['0'])[0]);
+      const aNum = parseInt((a.machine.match(/\d+$/) || ['0'])[0], 10);
+      const bNum = parseInt((b.machine.match(/\d+$/) || ['0'])[0], 10);
       return aNum - bNum;
     });
 
@@ -88,7 +89,8 @@ async function loadSummary() {
 
     container.innerHTML = html;
 
-    document.querySelectorAll('#summary-table tbody tr[data-machine]').forEach(tr => {
+    // Bật sự kiện click vào mỗi row để lấy chi tiết
+    document.querySelectorAll('#summary-table tbody tr[data-machine]').forEach((tr) => {
       tr.addEventListener('click', () => {
         const machine = tr.dataset.machine;
         loadDetails(machine);
@@ -140,7 +142,7 @@ async function loadRaw() {
   }
 }
 
-// --- Load Machine Details ---
+// --- Details View (khi click vào 1 máy) ---
 async function loadDetails(machine) {
   showDetails();
   detailsContainer.innerHTML = '<div class="text-center py-4">Loading details…</div>';
@@ -153,6 +155,7 @@ async function loadDetails(machine) {
       return;
     }
 
+    // Sắp xếp theo PU (nếu muốn)
     details.sort((a, b) => (a.pu || '').localeCompare(b.pu || ''));
 
     let html = `<h2 class="text-lg font-semibold mb-2">Chi tiết đơn cho: ${machine}</h2>`;
@@ -175,10 +178,9 @@ async function loadDetails(machine) {
       const key = d.pu || 'unknown';
       if (!colorMap[key]) {
         const hue = (colorIndex * 47) % 360;
-        colorMap[key] = `hsl(${hue}, 90%, 85%)`; // Tăng độ tương phản màu
+        colorMap[key] = `hsl(${hue}, 90%, 85%)`;
         colorIndex++;
       }
-
       const bgColor = colorMap[key];
 
       html += `
@@ -199,7 +201,7 @@ async function loadDetails(machine) {
   }
 }
 
-// --- Search Orders ---
+// --- Search Orders (theo ORDER CODE) ---
 async function searchOrders() {
   const input = document.getElementById('searchBox').value.trim();
   const resultEl = document.getElementById('searchResult');
@@ -212,8 +214,7 @@ async function searchOrders() {
   if (!data || data.length <= 1) return;
 
   const results = [];
-  const header = data[0];
-
+  // data[0] là header array
   for (const code of orderList) {
     const found = data.find(row => String(row[2] || '').toUpperCase() === code);
     if (found) {
@@ -258,7 +259,7 @@ function clearSearch() {
   document.getElementById('searchResult').innerHTML = '';
 }
 
-// --- INIT ---
+// --- INIT: Khi trang load, tự động hiện Summary View ---
 btnRaw.addEventListener('click', loadRaw);
 btnSummary.addEventListener('click', loadSummary);
 loadSummary();
