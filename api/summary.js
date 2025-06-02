@@ -1,18 +1,13 @@
 import data from '../data/powerapp.json' assert { type: 'json' };
 
 export default function handler(req, res) {
-  const headers = data[0];
-  const colIndex = {
-    machine: headers.indexOf('Máy'),
-    quantity: headers.indexOf('Sản lượng'),
-  };
-
   const summary = {};
 
-  for (let i = 1; i < data.length; i++) {
-    const row = data[i];
-    const machine = row[colIndex.machine];
-    const qty = parseInt(row[colIndex.quantity], 10) || 0;
+  for (const row of data) {
+    const machine = row["Máy"];
+    const qty = parseInt(row["Sản lượng"], 10) || 0;
+
+    if (!machine) continue;
 
     if (!summary[machine]) summary[machine] = 0;
     summary[machine] += qty;

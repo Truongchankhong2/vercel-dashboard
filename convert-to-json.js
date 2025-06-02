@@ -14,10 +14,14 @@ try {
   const sheetName = workbook.SheetNames[0];
   const sheet = workbook.Sheets[sheetName];
 
-  const json = xlsx.utils.sheet_to_json(sheet, { header: 1 });
+  // Sử dụng header thực tế thay vì index
+  const json = xlsx.utils.sheet_to_json(sheet, {
+    defval: "",     // giữ ô trống là chuỗi rỗng thay vì undefined
+    raw: false      // ép dữ liệu về dạng string nếu có thể
+  });
 
   fs.writeFileSync(outputPath, JSON.stringify(json, null, 2), 'utf-8');
-  console.log('✅ Đã chuyển đổi Powerapp.xlsx thành powerapp.json thành công!');
+  console.log('✅ Đã tạo file powerapp.json thành công!');
 } catch (error) {
   console.error('🚫 Lỗi:', error.message);
 }
