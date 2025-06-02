@@ -11,9 +11,9 @@
     }
   ],
   "routes": [
-    // Route cho mọi request /api/<tên> → chạy function tương ứng
+
     { "src": "/api/(.*)", "dest": "/api/$1.js" },
-    // Mặc định, mọi route khác (subpath) đều trả về index.html (SPA style)
+
     { "src": "/(.*)", "dest": "/public/index.html" }
   ]
 }

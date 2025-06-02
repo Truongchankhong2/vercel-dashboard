@@ -1,32 +1,33 @@
 @echo off
+REM ----------------------------------------
+REM Batch script để tự động convert Excel thành JSON
+REM rồi commit & push lên GitHub
+REM ----------------------------------------
+
+REM Chuyển tới thư mục chứa script (đảm bảo .bat được đặt trong thư mục gốc của project)
 cd /d "%~dp0"
 
-echo --------------------------
-echo ✅ BẮT ĐẦU CẬP NHẬT DỮ LIỆU
-echo --------------------------
-
-:: Chạy convert Powerapp.xlsx -> powerapp.json
-echo 🔄 Đang chuyển đổi Powerapp.xlsx sang powerapp.json...
+REM Bước 1: Chạy script Node để convert Powerapp.xlsx thành powerapp.json
+REM (File convert-to-json.js phải nằm ở thư mục gốc của project)
 node convert-to-json.js
-IF %ERRORLEVEL% NEQ 0 (
-    echo ❌ Lỗi khi convert dữ liệu. Dừng lại.
-    pause
-    exit /b
+
+REM Kiểm tra xem convert-to-json.js có chạy thành công không
+if errorlevel 1 (
+  echo ❌ Convert thất bại. Kiểm tra lại convert-to-json.js!
+  pause
+  exit /b 1
 )
 
-:: Thêm file JSON vào git
-echo 📝 Đang thêm file mới vào git...
-git add public/powerapp.json
+REM Bước 2: Stage tất cả thay đổi
+git add .
 
-:: Commit với thời gian hiện tại
-set now=%date% %time%
-git commit -m "Auto update at %now%"
+REM Bước 3: Commit với thông điệp có thời gian hiện tại
+REM %date% và %time% sẽ hiển thị theo locale của Windows
+set COMMIT_MSG=Auto-update JSON: %date% %time%
+git commit -m "%COMMIT_MSG%"
 
-:: Push lên GitHub
-echo ⬆️  Đang đẩy dữ liệu lên GitHub...
-git push
+REM Bước 4: Đẩy lên nhánh main (hoặc master tùy repo của bạn)
+git push origin main
 
-echo --------------------------
-echo ✅ HOÀN TẤT CẬP NHẬT
-echo --------------------------
+REM Nếu muốn dừng lại để xem kết quả, bỏ comment dòng bên dưới
 pause
