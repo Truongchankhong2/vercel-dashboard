@@ -1,24 +1,35 @@
-import { readExcel } from './utils.js';
+import path from 'path';
+import fs from 'fs';
 
-export default async function handler(req, res) {
-  const { machine } = req.query;
-  if (!machine) return res.status(400).json({ error: 'Thiếu máy' });
-
-  const data = await readExcel();
-  const result = [];
-
-  for (let i = 1; i < data.length; i++) {
-    const row = data[i];
-    if ((row[57] || '').trim() === machine) {
-      result.push({
-        order: row[2] || '',
-        brandCode: row[3] || '',
-        productType: row[5] || '',
-        quantity: parseFloat(row[6]) || 0,
-        pu: row[36] || ''
-      });
-    }
+export default function handler(req, res) {
+  const filePath = path.join(process.cwd(), 'data', 'powerapp.json');
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ error: 'File not found' });
   }
 
-  res.status(200).json(result);
+  const raw = fs.readFileSync(filePath, 'utf-8');
+  const rows = JSON.parse(raw);
+
+  const headers = rows[0];
+  const data = rows.slice(1);
+
+  const machineIndex = headers.indexOf('Máy');
+  const puIndex = headers.indexOf('PU');
+  const quantityIndex = headers.indexOf('Sản lượng');
+
+  const grouped = {};
+
+  for (const row of data) {
+    const machine = row[machineIndex];
+    const pu = row[puIndex];
+    const qty = parseInt(row[quantityIndex], 10) || 0;
+
+    if (!grouped[machine]) grouped[machine] = {};
+
+    if (!grouped[machine][pu]) grouped[machine][pu] = [];
+
+    grouped[machine][pu].push(row);
+  }
+
+  res.status(200).json({ headers, grouped });
 }
