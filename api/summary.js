@@ -1,19 +1,20 @@
 import data from '../data/powerapp.json' assert { type: 'json' };
 
 export default function handler(req, res) {
-  const summary = {};
+  const machineMap = {};
 
   for (const row of data) {
-    const machine = row["Máy"];
-    const qty = parseInt(row["Sản lượng"], 10) || 0;
+    const machine = row["LAMINATION MACHINE (PLAN)"]?.trim();
+    const qtyRaw = row["Total Qty"] ?? "0";
 
-    if (!machine) continue;
+    const qty = parseInt(qtyRaw.toString().replace(/,/g, ""), 10) || 0;
 
-    if (!summary[machine]) summary[machine] = 0;
-    summary[machine] += qty;
+    if (machine) {
+      machineMap[machine] = (machineMap[machine] || 0) + qty;
+    }
   }
 
-  const result = Object.entries(summary).map(([machine, total]) => ({
+  const result = Object.entries(machineMap).map(([machine, total]) => ({
     machine,
     total,
   }));

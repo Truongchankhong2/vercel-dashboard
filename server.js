@@ -3,29 +3,38 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-import dataHandler from './api/data.js';
-import summaryHandler from './api/summary.js';
-import detailsHandler from './api/details.js';
+import dataRouter from './api/data.js';
+import detailsRouter from './api/details.js';
+import summaryRouter from './api/summary.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3001;
 
 app.use(cors());
-app.use(express.static(__dirname)); // phục vụ các file .js, .css
+app.use(express.static(__dirname));
+app.use(express.json());
 
-// API
-app.get('/api/data', dataHandler);
-app.get('/api/summary', summaryHandler);
-app.get('/api/details', detailsHandler);
+// API routes
+app.use('/api/data', dataRouter);
+app.use('/api/details', detailsRouter);
+app.use('/api/summary', summaryRouter);
 
-// Trả về index.html khi truy cập /
+// Trang chính
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+// Khởi động server
 app.listen(PORT, () => {
-  console.log(`✅ Server đang chạy tại http://localhost:${PORT}`);
+  console.log(`🚀 Server is running at http://localhost:${PORT}`);
+}).on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`❌ Port ${PORT} is already in use. Please free it or try another port.`);
+    process.exit(1);
+  } else {
+    throw err;
+  }
 });

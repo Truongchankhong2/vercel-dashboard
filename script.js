@@ -168,17 +168,21 @@ async function loadDetails(machine) {
       </thead>
       <tbody class="bg-white divide-y divide-gray-200">`;
 
-    let lastPU = null;
-    let toggleColor = false;
+    const colorMap = {};
+    let colorIndex = 0;
 
     for (const d of details) {
-      if (d.pu !== lastPU) {
-        toggleColor = !toggleColor;
-        lastPU = d.pu;
+      const key = d.pu || 'unknown';
+      if (!colorMap[key]) {
+        const hue = (colorIndex * 47) % 360;
+        colorMap[key] = `hsl(${hue}, 90%, 85%)`; // Tăng độ tương phản màu
+        colorIndex++;
       }
 
+      const bgColor = colorMap[key];
+
       html += `
-        <tr class="${toggleColor ? 'bg-gray-50' : ''}">
+        <tr style="background-color: ${bgColor}">
           <td class="px-4 py-2 text-sm text-gray-800 whitespace-nowrap">${d.order}</td>
           <td class="px-4 py-2 text-sm text-gray-800 whitespace-nowrap">${d.brandCode}</td>
           <td class="px-4 py-2 text-sm text-gray-800 whitespace-nowrap">${d.productType}</td>
