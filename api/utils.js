@@ -1,19 +1,14 @@
-import path from 'path';
-import fs from 'fs';
-
-export function readPowerAppJSON() {
-  const filePath = path.join(process.cwd(), 'data', 'powerapp.json');
-
-  if (!fs.existsSync(filePath)) {
-    console.error('⚠️ File powerapp.json not found');
-    return [];
-  }
-
+export async function readPowerAppJSON(req) {
   try {
-    const raw = fs.readFileSync(filePath, 'utf-8');
-    return JSON.parse(raw);
+    const baseUrl = process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : 'http://localhost:3000';
+
+    const response = await fetch(`${baseUrl}/powerapp.json`);
+    const data = await response.json();
+    return data;
   } catch (err) {
-    console.error('❌ Error reading powerapp.json:', err);
+    console.error('❌ Failed to fetch powerapp.json from utils:', err);
     return [];
   }
 }

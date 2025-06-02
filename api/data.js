@@ -1,13 +1,23 @@
-import data from '../data/powerapp.json' assert { type: 'json' };
+export default async function handler(req, res) {
+  try {
+    const baseUrl = process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : 'http://localhost:3000';
 
-export default function handler(req, res) {
-  // Trả về toàn bộ raw data dưới dạng mảng mảng
-  if (!Array.isArray(data) || data.length === 0) {
-    return res.status(500).json({ error: 'No data found' });
+    const response = await fetch(`${baseUrl}/powerapp.json`);
+    const data = await response.json();
+
+    const header = Object.keys(data[0] || {});
+    const rows = [header];
+
+    for (const row of data) {
+      const values = header.map(h => row[h] ?? '');
+      rows.push(values);
+    }
+
+    res.status(200).json(rows);
+  } catch (err) {
+    console.error('❌ Failed to load powerapp.json in data.js:', err);
+    res.status(500).json({ error: 'Failed to load data' });
   }
-
-  const keys = Object.keys(data[0]);
-  const rows = [keys, ...data.map(row => keys.map(k => row[k] ?? ''))];
-
-  res.status(200).json(rows);
 }
