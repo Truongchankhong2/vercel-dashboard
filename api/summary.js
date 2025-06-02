@@ -1,16 +1,6 @@
-import fs from 'fs';
-import path from 'path';
+import data from '../data/powerapp.json' assert { type: 'json' };
 
 export default function handler(req, res) {
-  const jsonPath = path.join(process.cwd(), 'data', 'powerapp.json');
-
-  if (!fs.existsSync(jsonPath)) {
-    return res.status(500).json({ error: 'File powerapp.json not found' });
-  }
-
-  const jsonText = fs.readFileSync(jsonPath, 'utf-8');
-  const data = JSON.parse(jsonText);
-
   const machineMap = {};
 
   for (const row of data) {
