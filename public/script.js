@@ -201,10 +201,10 @@ async function loadDetailsClient(machine) {
     // Đặt đúng key cho các trường cần lấy
     const machineKey     = 'LAMINATION MACHINE (PLAN)';
     const qtyKey         = 'Total Qty';
-    const orderKey       = 'PRO ODER';       // ← Lưu ý: đúng là "PRO ODER", không phải "PRO ORDER"
+    const orderKey       = 'PRO ODER';       // “Order” thực tế trong JSON
     const brandCodeKey   = 'Brand Code';
-    const productTypeKey = '#MOLDED';        // ← Lưu ý: "#MOLDED" chính là "Product Type"
-    const puKey          = 'PU';             // Nếu bạn không cần cột PU, có thể bỏ phần này
+    const productTypeKey = '#MOLDED';        // “Product Type” thực tế trong JSON
+    const puKey          = 'PU';             // PU
 
     // Lọc ra các dòng thuộc máy này
     const filtered = data
@@ -222,10 +222,31 @@ async function loadDetailsClient(machine) {
       return;
     }
 
-    // (Tùy chọn) Sắp xếp theo PU để nhóm các đơn giống nhau lại
-    filtered.sort((a, b) => (a.pu || '').localeCompare(b.pu || ''));
+    // --- TẠO BẢN ĐỒ PU → MÀU SẮC ---
+    // Lấy danh sách PU duy nhất theo thứ tự xuất hiện
+    const uniquePUs = [];
+    filtered.forEach(item => {
+      const pu = item.pu || '(No PU)';
+      if (!uniquePUs.includes(pu)) {
+        uniquePUs.push(pu);
+      }
+    });
 
-    // Xây dựng HTML cho bảng chi tiết
+    // Sử dụng HSL để chia đều các hue (tương phản tốt)
+    // Ví dụ: nếu có N nhóm, mỗi nhóm sẽ nằm ở hue = k*(360/N), saturation 80%, lightness 90%
+    const colorMap = {};
+    const N = uniquePUs.length;
+    uniquePUs.forEach((pu, idx) => {
+      // Nếu PU rỗng, bạn có thể gán màu xám nhạt
+      if (!pu || pu === '') {
+        colorMap[pu] = 'hsl(0, 0%, 95%)';
+      } else {
+        const hue = Math.round((idx * 360) / N);
+        colorMap[pu] = `hsl(${hue}, 80%, 90%)`;
+      }
+    });
+
+    // --- XÂY DỰNG HTML CHO BẢNG CHI TIẾT ---
     let html = `<h2 class="text-lg font-semibold mb-2">Chi tiết đơn cho: ${machine}</h2>`;
     html += `
       <table class="min-w-full divide-y divide-gray-200">
@@ -240,16 +261,21 @@ async function loadDetailsClient(machine) {
         </thead>
         <tbody class="bg-white divide-y divide-gray-200">
     `;
+
+    // Tạo từng dòng <tr> với background-color dựa vào colorMap[item.pu]
     filtered.forEach(d => {
+      const pu = d.pu || '';
+      const bgColor = colorMap[pu];
       html += `
-        <tr class="hover:bg-gray-100">
+        <tr style="background-color: ${bgColor}">
           <td class="px-4 py-2 text-sm text-gray-800 whitespace-nowrap">${d.order}</td>
           <td class="px-4 py-2 text-sm text-gray-800 whitespace-nowrap">${d.brandCode}</td>
           <td class="px-4 py-2 text-sm text-gray-800 whitespace-nowrap">${d.productType}</td>
-          <td class="px-4 py-2 text-sm text-gray-800 whitespace-nowrap">${d.pu}</td>
+          <td class="px-4 py-2 text-sm text-gray-800 whitespace-nowrap">${pu}</td>
           <td class="px-4 py-2 text-sm text-gray-800 whitespace-nowrap text-right">${formatNumber(d.quantity)}</td>
         </tr>`;
     });
+
     html += `</tbody></table>`;
     detailsContainer.innerHTML = html;
   } catch (e) {
@@ -281,7 +307,7 @@ async function searchOrders() {
         results.push({
           order:    code,
           brand:    found['Brand Code']   || '',
-          type:     found['#MOLDED']      || '',  // "#MOLDED" chính là “Product Type”
+          type:     found['#MOLDED']      || '',
           quantity: Number(found['Total Qty']?.toString().replace(/,/g, '')) || 0,
           machine:  found['LAMINATION MACHINE (PLAN)'] || ''
         });
