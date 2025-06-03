@@ -201,21 +201,20 @@ async function loadDetailsClient(machine) {
     // Đặt đúng key cho các trường cần lấy
     const machineKey     = 'LAMINATION MACHINE (PLAN)';
     const qtyKey         = 'Total Qty';
-    const orderKey       = 'PRO ORDER';       // key chứa Order code
-    const brandCodeKey   = 'Brand Code';      // key chứa Brand Code
-    const productTypeKey = 'PRODUCT TYPE';    // key chứa Product Type (tùy JSON)
-    const puKey          = 'PU';              // key chứa PU
-    // Nếu JSON không có field “PRODUCT TYPE” hoặc “PU”, hãy điều chỉnh lại cho đúng
+    const orderKey       = 'PRO ODER';       // ← Lưu ý: đúng là "PRO ODER", không phải "PRO ORDER"
+    const brandCodeKey   = 'Brand Code';
+    const productTypeKey = '#MOLDED';        // ← Lưu ý: "#MOLDED" chính là "Product Type"
+    const puKey          = 'PU';             // Nếu bạn không cần cột PU, có thể bỏ phần này
 
     // Lọc ra các dòng thuộc máy này
     const filtered = data
       .filter(row => (row[machineKey] || '').toString().trim() === machine)
       .map(row => ({
-        order:         row[orderKey]       || '',
-        brandCode:     row[brandCodeKey]   || '',
-        productType:   row[productTypeKey] || '',
-        pu:            row[puKey]          || '',
-        quantity:      Number(row[qtyKey]?.toString().replace(/,/g, '')) || 0
+        order:       row[orderKey]       || '',
+        brandCode:   row[brandCodeKey]   || '',
+        productType: row[productTypeKey] || '',
+        pu:          row[puKey]          || '',
+        quantity:    Number(row[qtyKey]?.toString().replace(/,/g, '')) || 0
       }));
 
     if (filtered.length === 0) {
@@ -277,13 +276,12 @@ async function searchOrders() {
 
     const results = [];
     orderList.forEach(code => {
-      // Thay 'PRO ORDER' bằng đúng key nếu JSON của bạn khác
-      const found = data.find(row => String(row['PRO ORDER'] || '').toUpperCase() === code);
+      const found = data.find(row => String(row['PRO ODER'] || '').toUpperCase() === code);
       if (found) {
         results.push({
           order:    code,
           brand:    found['Brand Code']   || '',
-          type:     found['PRODUCT TYPE'] || '',
+          type:     found['#MOLDED']      || '',  // "#MOLDED" chính là “Product Type”
           quantity: Number(found['Total Qty']?.toString().replace(/,/g, '')) || 0,
           machine:  found['LAMINATION MACHINE (PLAN)'] || ''
         });
