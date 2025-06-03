@@ -1,33 +1,39 @@
-# 1. Kiểm tra trạng thái
-git status
+@echo off
+REM =====================================================
+REM update_and_convert.bat – Chuyển powerapp.xlsx → JSON, rồi add → commit → push
+REM =====================================================
 
-# ⇒ Git in ra:
-# On branch main
-# Your branch is up to date with 'origin/main'.
-#
-# Changes not staged for commit:
-#   (use "git add <file>..." to update what will be committed)
-#   (use "git restore <file>..." to discard changes in working directory)
-#       modified:   public/powerapp.json
-#       modified:   public/script.js
-#
-# Untracked files:
-#   (use "git add <file>..." to include in what will be committed)
-#       data/new-data.xlsx
+REM 1) Chuyển đến thư mục chứa file .bat (gốc project)
+cd /d "%~dp0"
 
-# 2. Thêm toàn bộ thay đổi (bao gồm cả file bị xoá, file mới)
+REM 2) Kiểm tra có folder .git hay không
+if not exist ".git" (
+  echo ERROR: Thư mục .git không tìm thấy.
+  exit /b 1
+)
+
+REM 3) Chạy Node script để convert powerapp.xlsx → public\powerapp.json
+node convert-to-json.cjs
+if errorlevel 1 (
+  echo !!! Lỗi khi chạy convert-to-json.cjs.
+  exit /b 1
+)
+
+REM 4) Thêm toàn bộ thay đổi (bao gồm JSON mới)
 git add --all
+if errorlevel 1 (
+  echo !!! Lỗi khi git add.
+  exit /b 1
+)
 
-# 3. Commit với message
-git commit -m "Cập nhật powerapp.json và sửa script.js theo yêu cầu"
+REM 5) Thực hiện commit với message mặc định (Auto update + timestamp)
+git commit -m "Auto update on %DATE% %TIME%" 2>nul
 
-# Nếu không có gì mới (ví dụ bạn đã commit trước đó rồi), Git sẽ báo "nothing to commit"
+REM 6) Push lên remote origin, branch hiện tại (HEAD)
+git push origin HEAD
+if errorlevel 1 (
+  echo !!! Lỗi khi git push.
+  exit /b 1
+)
 
-# 4. (Tuỳ chọn) Xem lại commit cuối
-git log -1
-
-# 5. Push lên remote origin (branch main)
-git push origin main
-
-# Nếu remote khác (vd: tên branch là master), sửa thành
-# git push origin master
+exit /b 0
