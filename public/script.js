@@ -11,6 +11,7 @@ const searchResult     = document.getElementById('searchResult');
 const lastUpdatedEl    = document.getElementById('last-updated');
 const btnRaw           = document.getElementById('btn-raw');
 const btnSummary       = document.getElementById('btn-summary');
+const btnRefresh       = document.getElementById('btn-refresh');
 
 // --- Utility functions ---
 function updateTimestamp() {
@@ -26,6 +27,8 @@ function setBtnLoading(btn, isLoading) {
     btn.textContent = isLoading ? 'Loading…' : 'Summary View';
   } else if (btn.id === 'btnSearch') {
     btn.textContent = isLoading ? 'Loading…' : 'Tìm';
+  } else if (btn.id === 'btn-refresh') {
+    btn.textContent = isLoading ? 'Loading…' : 'Refresh';
   }
 }
 
@@ -45,7 +48,12 @@ function showDetails() {
 // -----------------------------------
 // --- RAW VIEW (dữ liệu gốc) ---
 // -----------------------------------
+let currentView = 'summary';   // Có thể: 'summary' | 'raw' | 'detail'
+let currentMachine = null;     // Tên máy nếu đang ở detail
+
 async function loadRaw() {
+  currentView = 'raw';
+  currentMachine = null;
   setBtnLoading(btnRaw, true);
   hideDetails();
   container.innerHTML = '';
@@ -90,6 +98,8 @@ async function loadRaw() {
 // --- SUMMARY VIEW (tổng hợp) ---
 // -----------------------------------
 async function loadSummaryClient() {
+  currentView = 'summary';
+  currentMachine = null;
   setBtnLoading(btnSummary, true);
   hideDetails();
   container.innerHTML = '';
@@ -105,7 +115,7 @@ async function loadSummaryClient() {
       return;
     }
 
-    // Phải khớp chính xác với key trong JSON
+    // Key chính xác trong JSON
     const machineKey = 'LAMINATION MACHINE (PLAN)';
     const qtyKey     = 'Total Qty';
 
@@ -184,6 +194,9 @@ async function loadSummaryClient() {
 // --- DETAILS VIEW (kèm sắp xếp theo PU→Khách Hàng→Order) ---
 // -----------------------------------
 async function loadDetailsClient(machine) {
+  currentView = 'detail';
+  currentMachine = machine;
+
   // Hiện khung chi tiết
   detailsContainer.classList.remove('hidden');
   // Xóa sạch nội dung cũ (nếu có)
@@ -471,6 +484,24 @@ function clearSearch() {
   searchBox.value = '';
   searchResult.innerHTML = '';
 }
+
+// -----------------------------------
+// --- REFRESH BUTTON LOGIC ---
+// -----------------------------------
+btnRefresh.addEventListener('click', () => {
+  // Khi click “Refresh”, tuỳ theo currentView mà gọi lại hàm tương ứng
+  setBtnLoading(btnRefresh, true);
+  if (currentView === 'summary') {
+    loadSummaryClient().finally(() => setBtnLoading(btnRefresh, false));
+  } else if (currentView === 'raw') {
+    loadRaw().finally(() => setBtnLoading(btnRefresh, false));
+  } else if (currentView === 'detail' && currentMachine) {
+    loadDetailsClient(currentMachine).finally(() => setBtnLoading(btnRefresh, false));
+  } else {
+    // Mặc định fallback về Summary
+    loadSummaryClient().finally(() => setBtnLoading(btnRefresh, false));
+  }
+});
 
 // -----------------------------------
 // --- INITIALIZATION ---
