@@ -1,11 +1,10 @@
-export async function readPowerAppJSON(req) {
+// utils.js
+export async function readPowerAppJSON() {
   try {
-    const baseUrl = process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : 'http://localhost:3001';
-    const res = await fetch(`${baseUrl}/powerapp.json`);
-    const data = await res.json();
-    return data;
+    // Tải trực tiếp JSON tĩnh (đường dẫn relative đủ dùng trên Vercel)
+    const res = await fetch('/powerapp.json', { cache: 'no-store' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
   } catch (err) {
     console.error('Failed to fetch powerapp.json:', err);
     return [];

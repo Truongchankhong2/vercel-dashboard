@@ -1,33 +1,67 @@
 @echo off
-REM ----------------------------------------
-REM Batch script để tự động convert Excel thành JSON
-REM rồi commit & push lên GitHub
-REM ----------------------------------------
+REM -----------------------------
+REM update_git.bat
+REM Tự động git add, commit và push
+REM -----------------------------
 
-REM Chuyển tới thư mục chứa script (đảm bảo .bat được đặt trong thư mục gốc của project)
+REM 1. Di chuyển đến thư mục chứa script (giả sử file được đặt trong thư mục project):
+REM    Nếu bạn double-click trực tiếp hoặc chạy từ cùng thư mục, dòng này không cần thiết.
+REM    Nếu muốn chạy từ nơi khác, hãy sửa đường dẫn bên dưới cho phù hợp.
 cd /d "%~dp0"
 
-REM Bước 1: Chạy script Node để convert Powerapp.xlsx thành powerapp.json
-REM (File convert-to-json.js phải nằm ở thư mục gốc của project)
-node convert-to-json.js
-
-REM Kiểm tra xem convert-to-json.js có chạy thành công không
-if errorlevel 1 (
-  echo ❌ Convert thất bại. Kiểm tra lại convert-to-json.js!
-  pause
-  exit /b 1
+REM 2. Kiểm tra xem thư mục .git có tồn tại không
+if not exist ".git" (
+    echo Thư mục .git không tồn tại. Hãy chạy update_git.bat trong thư mục project chứa .git.
+    pause
+    exit /b 1
 )
 
-REM Bước 2: Stage tất cả thay đổi
-git add .
+REM 3. Đọc nội dung commit message từ người dùng
+set /p COMMIT_MSG=Nhập commit message (nhấn Enter để dùng mặc định): 
 
-REM Bước 3: Commit với thông điệp có thời gian hiện tại
-REM %date% và %time% sẽ hiển thị theo locale của Windows
-set COMMIT_MSG=Auto-update JSON: %date% %time%
+REM 4. Nếu người dùng không nhập gì, ta gán một message mặc định
+if "%COMMIT_MSG%"=="" (
+    set COMMIT_MSG=Auto update at %DATE% %TIME%
+)
+
+echo.
+echo ==============================================
+echo Đang thực hiện:
+echo   git add --all
+echo   git commit -m "%COMMIT_MSG%"
+echo   git push
+echo ==============================================
+echo.
+
+REM 5. Thêm tất cả thay đổi
+git add --all
+if errorlevel 1 (
+    echo Lỗi khi git add. Kiểm tra xem Git đã được cài đặt chưa, hoặc kiểm tra xem có thay đổi nào không.
+    pause
+    exit /b 1
+)
+
+REM 6. Commit với message vừa nhập
 git commit -m "%COMMIT_MSG%"
+if errorlevel 1 (
+    echo Không có thay đổi để commit, hoặc xảy ra lỗi trong quá trình commit.
+    echo (Thông báo lỗi từ Git ở trên)
+    pause
+    REM Vẫn thử push (nếu có remote mới được commit trước đó), hoặc thoát
+    echo Thử git push nếu có commit cũ...
+    git push
+    pause
+    exit /b 0
+)
 
-REM Bước 4: Đẩy lên nhánh main (hoặc master tùy repo của bạn)
-git push origin main
+REM 7. Push lên remote (mặc định là origin + branch hiện tại)
+git push
+if errorlevel 1 (
+    echo Lỗi khi git push. Có thể bạn cần kiểm tra quyền, remote hoặc branch.
+    pause
+    exit /b 1
+)
 
-REM Nếu muốn dừng lại để xem kết quả, bỏ comment dòng bên dưới
+echo.
+echo Đã push lên remote thành công!
 pause

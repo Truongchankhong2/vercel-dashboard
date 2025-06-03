@@ -3,21 +3,28 @@
 // --- DOM elements ---
 const container = document.getElementById('table-container');
 const detailsContainer = document.getElementById('details-container');
+const searchBox = document.getElementById('searchBox');
+const searchField = document.getElementById('searchField');
+const btnSearch = document.getElementById('btnSearch');
+const btnClearSearch = document.getElementById('btnClearSearch');
+const searchResult = document.getElementById('searchResult');
 const lastUpdatedEl = document.getElementById('last-updated');
 const btnRaw = document.getElementById('btn-raw');
 const btnSummary = document.getElementById('btn-summary');
 
 // --- Utility functions ---
 function updateTimestamp() {
-  lastUpdatedEl.textContent = new Date().toLocaleTimeString();
+  lastUpdatedEl.textContent = 'Cập nhật: ' + new Date().toLocaleTimeString();
 }
 
 function setBtnLoading(btn, isLoading) {
   btn.disabled = isLoading;
   if (btn.id === 'btn-raw') {
     btn.textContent = isLoading ? 'Loading…' : 'Raw View';
-  } else {
+  } else if (btn.id === 'btn-summary') {
     btn.textContent = isLoading ? 'Loading…' : 'Summary View';
+  } else if (btn.id === 'btnSearch') {
+    btn.textContent = isLoading ? 'Loading…' : 'Tìm';
   }
 }
 
@@ -40,13 +47,12 @@ function showDetails() {
 async function loadRaw() {
   setBtnLoading(btnRaw, true);
   hideDetails();
+  container.innerHTML = ''; 
+  searchResult.innerHTML = '';
 
   try {
-    // Bắt buộc fetch không dùng cache để tránh 304 Not Modified
     const res = await fetch('/api/data', { cache: 'no-store' });
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}`);
-    }
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const rows = await res.json();
 
     if (!Array.isArray(rows) || rows.length === 0) {
@@ -54,14 +60,10 @@ async function loadRaw() {
     } else {
       let html = '<table class="min-w-full table-auto border-collapse">';
       html += '<thead class="bg-gray-50"><tr>';
-
-      // Dòng đầu tiên của rows là header (mảng tên cột)
       rows[0].forEach((_, i) => {
         html += `<th class="border px-2 py-1 text-left text-sm font-medium text-gray-700">Cột ${i + 1}</th>`;
       });
       html += '</tr></thead><tbody>';
-
-      // Dữ liệu thực tế (từ hàng thứ 2 trở đi)
       rows.slice(1).forEach(r => {
         html += '<tr class="hover:bg-gray-100">';
         r.forEach(cell => {
@@ -69,7 +71,6 @@ async function loadRaw() {
         });
         html += '</tr>';
       });
-
       html += '</tbody></table>';
       container.innerHTML = html;
     }
@@ -88,13 +89,12 @@ async function loadRaw() {
 async function loadSummaryClient() {
   setBtnLoading(btnSummary, true);
   hideDetails();
+  container.innerHTML = '';
+  searchResult.innerHTML = '';
 
   try {
-    // 1. Lấy toàn bộ JSON từ public/powerapp.json
     const res = await fetch('/powerapp.json', { cache: 'no-store' });
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}`);
-    }
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
     console.log('[DEBUG] raw JSON length =', data.length);
@@ -103,11 +103,9 @@ async function loadSummaryClient() {
       return;
     }
 
-    // 2. Đặt đúng key cho "tên máy" và "số lượng"
     const machineKey = 'LAMINATION MACHINE (PLAN)';
     const qtyKey     = 'Total Qty';
 
-    // 3. Tổng hợp số lượng theo máy
     const machineMap = {};
     data.forEach(row => {
       const machine = (row[machineKey] || '').toString().trim();
@@ -116,26 +114,19 @@ async function loadSummaryClient() {
       machineMap[machine] = (machineMap[machine] || 0) + qty;
     });
 
-    // 4. Chuyển thành mảng kết quả [{ machine, total }, …]
-    const result = Object.entries(machineMap).map(([machine, total]) => ({
-      machine,
-      total
-    }));
-
+    const result = Object.entries(machineMap).map(([machine, total]) => ({ machine, total }));
     console.log('[DEBUG] Summary data (client) =', result);
     if (result.length === 0) {
       container.innerHTML = '<div class="text-center py-4">Không có dữ liệu summary</div>';
       return;
     }
 
-    // 5. Sắp xếp theo số cuối trong tên máy (nếu có) hoặc giữ nguyên thứ tự
     result.sort((a, b) => {
       const aNum = parseInt((a.machine.match(/\d+$/) || ['0'])[0], 10);
       const bNum = parseInt((b.machine.match(/\d+$/) || ['0'])[0], 10);
       return aNum - bNum;
     });
 
-    // 6. Xây dựng HTML cho bảng summary
     let totalAll = 0;
     let html = `
       <table id="summary-table" class="min-w-full divide-y divide-gray-200">
@@ -166,7 +157,6 @@ async function loadSummaryClient() {
     `;
     container.innerHTML = html;
 
-    // 7. Đăng ký sự kiện click cho mỗi hàng để load chi tiết
     document.querySelectorAll('#summary-table tbody tr[data-machine]').forEach(tr => {
       tr.addEventListener('click', () => {
         const machine = tr.dataset.machine;
@@ -191,22 +181,17 @@ async function loadDetailsClient(machine) {
   detailsContainer.innerHTML = '<div class="text-center py-4">Loading details…</div>';
 
   try {
-    // Gọi lại toàn bộ JSON và lọc ra các dòng có cùng machine
     const res = await fetch('/powerapp.json', { cache: 'no-store' });
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}`);
-    }
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
-    // Đặt đúng key cho các trường cần lấy
     const machineKey     = 'LAMINATION MACHINE (PLAN)';
     const qtyKey         = 'Total Qty';
-    const orderKey       = 'PRO ODER';       // “Order” thực tế trong JSON
+    const orderKey       = 'PRO ODER';
     const brandCodeKey   = 'Brand Code';
-    const productTypeKey = '#MOLDED';        // “Product Type” thực tế trong JSON
-    const puKey          = 'PU';             // PU
+    const productTypeKey = '#MOLDED';
+    const puKey          = 'PU';
 
-    // Lọc ra các dòng thuộc máy này
     const filtered = data
       .filter(row => (row[machineKey] || '').toString().trim() === machine)
       .map(row => ({
@@ -222,8 +207,7 @@ async function loadDetailsClient(machine) {
       return;
     }
 
-    // --- TẠO BẢN ĐỒ PU → MÀU SẮC ---
-    // Lấy danh sách PU duy nhất theo thứ tự xuất hiện
+    // Tạo colorMap cho từng nhóm PU
     const uniquePUs = [];
     filtered.forEach(item => {
       const pu = item.pu || '(No PU)';
@@ -232,12 +216,9 @@ async function loadDetailsClient(machine) {
       }
     });
 
-    // Sử dụng HSL để chia đều các hue (tương phản tốt)
-    // Ví dụ: nếu có N nhóm, mỗi nhóm sẽ nằm ở hue = k*(360/N), saturation 80%, lightness 90%
     const colorMap = {};
     const N = uniquePUs.length;
     uniquePUs.forEach((pu, idx) => {
-      // Nếu PU rỗng, bạn có thể gán màu xám nhạt
       if (!pu || pu === '') {
         colorMap[pu] = 'hsl(0, 0%, 95%)';
       } else {
@@ -246,7 +227,6 @@ async function loadDetailsClient(machine) {
       }
     });
 
-    // --- XÂY DỰNG HTML CHO BẢNG CHI TIẾT ---
     let html = `<h2 class="text-lg font-semibold mb-2">Chi tiết đơn cho: ${machine}</h2>`;
     html += `
       <table class="min-w-full divide-y divide-gray-200">
@@ -261,8 +241,6 @@ async function loadDetailsClient(machine) {
         </thead>
         <tbody class="bg-white divide-y divide-gray-200">
     `;
-
-    // Tạo từng dòng <tr> với background-color dựa vào colorMap[item.pu]
     filtered.forEach(d => {
       const pu = d.pu || '';
       const bgColor = colorMap[pu];
@@ -275,7 +253,6 @@ async function loadDetailsClient(machine) {
           <td class="px-4 py-2 text-sm text-gray-800 whitespace-nowrap text-right">${formatNumber(d.quantity)}</td>
         </tr>`;
     });
-
     html += `</tbody></table>`;
     detailsContainer.innerHTML = html;
   } catch (e) {
@@ -285,84 +262,110 @@ async function loadDetailsClient(machine) {
 }
 
 // -----------------------------------
-// --- SEARCH ORDERS (nếu cần) ---
+// --- SEARCH ORDERS (tìm tương đối) ---
 // -----------------------------------
 async function searchOrders() {
-  const input = document.getElementById('searchBox').value.trim();
-  const resultEl = document.getElementById('searchResult');
-  if (!input) return;
+  const query = searchBox.value.trim().toUpperCase();
+  const fieldKey = searchField.value; // ví dụ: "PRO ODER" hoặc "Brand Code" hoặc "#MOLDED" hoặc "PU"
+  if (!query) {
+    searchResult.innerHTML = '';
+    return;
+  }
 
-  const orderList = input.split('|').map(o => o.trim().toUpperCase());
+  setBtnLoading(btnSearch, true);
+  container.innerHTML = '';
+  hideDetails();
+
   try {
     const res = await fetch('/powerapp.json', { cache: 'no-store' });
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}`);
-    }
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
-    const results = [];
-    orderList.forEach(code => {
-      const found = data.find(row => String(row['PRO ODER'] || '').toUpperCase() === code);
-      if (found) {
-        results.push({
-          order:    code,
-          brand:    found['Brand Code']   || '',
-          type:     found['#MOLDED']      || '',
-          quantity: Number(found['Total Qty']?.toString().replace(/,/g, '')) || 0,
-          machine:  found['LAMINATION MACHINE (PLAN)'] || ''
-        });
-      }
-    });
+    // Lọc các dòng chứa query trong fieldKey (substring, không phân biệt hoa/thường)
+    const results = data.filter(row => {
+      const cellValue = (row[fieldKey] || '').toString().toUpperCase();
+      return cellValue.includes(query);
+    }).map(row => ({
+      order:       row['PRO ODER'] || '',
+      brandCode:   row['Brand Code'] || '',
+      productType: row['#MOLDED'] || '',
+      pu:          row['PU'] || '',
+      quantity:    Number(row['Total Qty']?.toString().replace(/,/g, '')) || 0,
+      machine:     row['LAMINATION MACHINE (PLAN)'] || ''
+    }));
 
-    let html = `<h3 class="font-semibold">Kết quả tìm kiếm:</h3>`;
+    let html = `<h3 class="font-semibold mb-2">Kết quả tìm kiếm theo "${fieldKey}": "${searchBox.value}"</h3>`;
     if (results.length === 0) {
-      html += `<p>Không tìm thấy đơn hàng nào.</p>`;
+      html += `<p>Không tìm thấy kết quả nào.</p>`;
     } else {
       html += `
-        <table border="1" cellspacing="0" cellpadding="5" class="mt-2 min-w-full">
-          <thead>
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
             <tr>
-              <th>ORDER</th>
-              <th>BRAND CODE</th>
-              <th>PRODUCT TYPE</th>
-              <th>QUANTITY</th>
-              <th>MACHINE</th>
+              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Order</th>
+              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Brand Code</th>
+              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Product Type</th>
+              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">PU</th>
+              <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Quantity</th>
+              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Machine</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody class="bg-white divide-y divide-gray-200">
       `;
       results.forEach(r => {
-        html += `<tr>
-            <td>${r.order}</td>
-            <td>${r.brand}</td>
-            <td>${r.type}</td>
-            <td>${formatNumber(r.quantity)}</td>
-            <td>${r.machine}</td>
+        html += `
+          <tr class="hover:bg-gray-100 cursor-pointer" data-machine="${r.machine}">
+            <td class="px-4 py-2 text-sm text-gray-800 whitespace-nowrap">${r.order}</td>
+            <td class="px-4 py-2 text-sm text-gray-800 whitespace-nowrap">${r.brandCode}</td>
+            <td class="px-4 py-2 text-sm text-gray-800 whitespace-nowrap">${r.productType}</td>
+            <td class="px-4 py-2 text-sm text-gray-800 whitespace-nowrap">${r.pu}</td>
+            <td class="px-4 py-2 text-sm text-gray-800 whitespace-nowrap text-right">${formatNumber(r.quantity)}</td>
+            <td class="px-4 py-2 text-sm text-gray-800 whitespace-nowrap">${r.machine}</td>
           </tr>`;
       });
       html += `</tbody></table>`;
     }
 
-    html += `<button onclick="clearSearch()" class="mt-2 px-3 py-1 bg-red-500 text-white rounded">Xóa</button>`;
-    resultEl.innerHTML = html;
+    html += `<button id="btnClearAfter" class="mt-4 px-4 py-2 bg-gray-300 text-gray-800 rounded">Quay lại</button>`;
+    searchResult.innerHTML = html;
+
+    // Khi click vào 1 dòng trong kết quả tìm, tự động show chi tiết cho machine tương ứng
+    document.querySelectorAll('#searchResult tbody tr[data-machine]').forEach(tr => {
+      tr.addEventListener('click', () => {
+        const machine = tr.dataset.machine;
+        loadDetailsClient(machine);
+      });
+    });
+
+    // Xử lý nút "Quay lại" để xóa kết quả tìm và hiện Summary lại
+    document.getElementById('btnClearAfter').addEventListener('click', () => {
+      searchResult.innerHTML = '';
+      loadSummaryClient();
+    });
+
+    updateTimestamp();
   } catch (e) {
     console.error('[ERROR] searchOrders failed:', e);
-    resultEl.innerHTML = `<p class="text-red-500">Lỗi tìm kiếm dữ liệu</p>`;
+    searchResult.innerHTML = `<p class="text-red-500">Lỗi tìm kiếm dữ liệu</p>`;
+  } finally {
+    setBtnLoading(btnSearch, false);
   }
 }
 
 function clearSearch() {
-  document.getElementById('searchBox').value = '';
-  document.getElementById('searchResult').innerHTML = '';
+  searchBox.value = '';
+  searchResult.innerHTML = '';
 }
 
 // -----------------------------------
 // --- INITIALIZATION ---
 // -----------------------------------
 
-// Gắn sự kiện cho hai nút
+// Gắn sự kiện cho 4 nút:
 btnRaw.addEventListener('click', loadRaw);
 btnSummary.addEventListener('click', loadSummaryClient);
+btnSearch.addEventListener('click', searchOrders);
+btnClearSearch.addEventListener('click', clearSearch);
 
-// Khi trang load, tự động hiển bảng Summary lần đầu
+// Khi trang load, tự động hiện Summary lần đầu
 loadSummaryClient();
