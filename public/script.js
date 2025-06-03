@@ -105,7 +105,7 @@ async function loadSummaryClient() {
       return;
     }
 
-    // Key chính xác trong JSON
+    // Phải khớp chính xác với key trong JSON
     const machineKey = 'LAMINATION MACHINE (PLAN)';
     const qtyKey     = 'Total Qty';
 
@@ -181,16 +181,15 @@ async function loadSummaryClient() {
 }
 
 // -----------------------------------
-// --- DETAILS VIEW (kèm thanh tìm riêng) ---
+// --- DETAILS VIEW (kèm sắp xếp theo PU→Khách Hàng→Order) ---
 // -----------------------------------
 async function loadDetailsClient(machine) {
   // Hiện khung chi tiết
   detailsContainer.classList.remove('hidden');
-
-  // Khi bắt đầu, xoá nội dung cũ
+  // Xóa sạch nội dung cũ (nếu có)
   detailsContainer.innerHTML = '';
 
-  // 1. Thêm ngay “Thanh Tìm riêng cho Chi tiết” (Việt hóa)
+  // 1. Chèn ngay “Thanh Tìm riêng cho Chi tiết” (Việt hóa)
   const detailSearchHTML = `
     <div id="detail-search-bar" class="mb-4 flex flex-col sm:flex-row sm:items-center sm:space-x-4">
       <label for="detailSearchField" class="block text-sm font-medium text-gray-700 mb-2 sm:mb-0">
@@ -227,16 +226,15 @@ async function loadDetailsClient(machine) {
       </div>
     </div>
   `;
-  // 2. Thêm khung trong detailsContainer
   detailsContainer.insertAdjacentHTML('beforeend', detailSearchHTML);
 
-  // Tiếp theo là fetch data và build bảng chi tiết giống trước
+  // 2. Lấy dữ liệu JSON & lọc row cho máy hiện tại
   try {
     const res = await fetch('/powerapp.json', { cache: 'no-store' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
-    // Khóa trong JSON
+    // Key trong JSON
     const machineKey     = 'LAMINATION MACHINE (PLAN)';
     const qtyKey         = 'Total Qty';
     const orderKey       = 'PRO ODER';
@@ -244,8 +242,8 @@ async function loadDetailsClient(machine) {
     const productTypeKey = '#MOLDED';
     const puKey          = 'PU';
 
-    // Lọc ra các dòng thuộc máy này
-    const filtered = data
+    // Lọc ra những dòng có đúng máy đã click
+    let filtered = data
       .filter(row => (row[machineKey] || '').toString().trim() === machine)
       .map(row => ({
         order:       row[orderKey]       || '',
@@ -255,6 +253,7 @@ async function loadDetailsClient(machine) {
         quantity:    Number(row[qtyKey]?.toString().replace(/,/g, '')) || 0
       }));
 
+    // Nếu không có dòng nào, hiển thông báo
     if (filtered.length === 0) {
       detailsContainer.insertAdjacentHTML(
         'beforeend',
@@ -263,15 +262,30 @@ async function loadDetailsClient(machine) {
       return;
     }
 
-    // Tạo colorMap như trước (giữ nguyên)
-    const uniquePUs = [];
-    filtered.forEach(item => {
-      const pu = item.pu || '(No PU)';
-      if (!uniquePUs.includes(pu)) uniquePUs.push(pu);
+    // 3. Sắp xếp filtered theo thứ tự: PU → Brand Code → Order
+    filtered.sort((a, b) => {
+      const aPU = (a.pu || '').toUpperCase();
+      const bPU = (b.pu || '').toUpperCase();
+      if (aPU !== bPU) {
+        return aPU.localeCompare(bPU);
+      }
+      // cùng PU:
+      const aBrand = (a.brandCode || '').toUpperCase();
+      const bBrand = (b.brandCode || '').toUpperCase();
+      if (aBrand !== bBrand) {
+        return aBrand.localeCompare(bBrand);
+      }
+      // cùng Brand: so Order
+      return (a.order || '').toUpperCase().localeCompare((b.order || '').toUpperCase());
     });
+
+    // 4. Tạo danh sách PU duy nhất (distinct), theo thứ tự xuất hiện sau khi sort
+    const distinctPUs = Array.from(new Set(filtered.map(d => d.pu || '')));
+
+    // 5. Tạo colorMap cho từng PU, theo thứ tự trong distinctPUs
     const colorMap = {};
-    const N = uniquePUs.length;
-    uniquePUs.forEach((pu, idx) => {
+    const N = distinctPUs.length;
+    distinctPUs.forEach((pu, idx) => {
       if (!pu || pu === '') {
         colorMap[pu] = 'hsl(0, 0%, 95%)';
       } else {
@@ -280,7 +294,7 @@ async function loadDetailsClient(machine) {
       }
     });
 
-    // Xây dựng bảng chi tiết (với id="detail-table")
+    // 6. Xây dựng HTML cho bảng chi tiết (có id="detail-table")
     let html = `<h2 class="text-lg font-semibold mb-2">Chi tiết đơn cho: ${machine}</h2>`;
     html += `
       <table id="detail-table" class="min-w-full divide-y divide-gray-200">
@@ -295,6 +309,7 @@ async function loadDetailsClient(machine) {
         </thead>
         <tbody class="bg-white divide-y divide-gray-200">
     `;
+
     filtered.forEach(d => {
       const pu = d.pu || '';
       const bgColor = colorMap[pu];
@@ -307,31 +322,29 @@ async function loadDetailsClient(machine) {
           <td class="px-4 py-2 text-sm text-gray-800 whitespace-nowrap text-right">${formatNumber(d.quantity)}</td>
         </tr>`;
     });
+
     html += `</tbody></table>`;
     detailsContainer.insertAdjacentHTML('beforeend', html);
 
-    // === Thiết lập chức năng “Tìm riêng cho Chi tiết” ===
-
-    // Lấy tham chiếu đến các element tìm kiếm riêng
+    // 7. Bắt sự kiện cho thanh tìm riêng (Detail Search)
     const detailSearchField = document.getElementById('detailSearchField');
     const detailSearchBox   = document.getElementById('detailSearchBox');
     const detailBtnSearch   = document.getElementById('detailBtnSearch');
     const detailBtnClear    = document.getElementById('detailBtnClear');
     const detailTable       = document.getElementById('detail-table');
 
-    // Hàm lọc các hàng trong bảng chi tiết
+    // Hàm lọc dòng trong bảng detail
     function filterDetailTable() {
       const query = detailSearchBox.value.trim().toUpperCase();
-      const fieldKey = detailSearchField.value; // ví dụ: "PRO ODER", "Brand Code", "#MOLDED", "PU"
+      const fieldKey = detailSearchField.value; // "PRO ODER", "Brand Code", "#MOLDED", "PU"
       if (!query) {
-        // Nếu query rỗng, hiện lại tất cả hàng
+        // Hiện lại tất cả hàng nếu query rỗng
         Array.from(detailTable.tBodies[0].rows).forEach(row => {
           row.style.display = '';
         });
         return;
       }
-
-      // Xác định cột cần soát: mapping fieldKey → index cột
+      // Xác định index cột cần so sánh dựa vào fieldKey
       const columnIndexMap = {
         'PRO ODER':   0,
         'Brand Code': 1,
@@ -339,26 +352,18 @@ async function loadDetailsClient(machine) {
         'PU':         3
       };
       const colIndex = columnIndexMap[fieldKey];
-
       Array.from(detailTable.tBodies[0].rows).forEach(row => {
         const cellText = row.cells[colIndex].textContent.trim().toUpperCase();
-        if (cellText.includes(query)) {
-          row.style.display = '';
-        } else {
-          row.style.display = 'none';
-        }
+        row.style.display = cellText.includes(query) ? '' : 'none';
       });
     }
 
-    // Khi nhấn nút “Tìm Chi Tiết”
     detailBtnSearch.addEventListener('click', () => {
       filterDetailTable();
     });
-
-    // Khi nhấn “Xóa Chi Tiết”
     detailBtnClear.addEventListener('click', () => {
       detailSearchBox.value = '';
-      filterDetailTable(); // sẽ show lại hết
+      filterDetailTable(); // reset lại toàn bộ
     });
 
     updateTimestamp();
