@@ -47,7 +47,7 @@ function showDetails() {
 async function loadRaw() {
   setBtnLoading(btnRaw, true);
   hideDetails();
-  container.innerHTML = ''; 
+  container.innerHTML = '';
   searchResult.innerHTML = '';
 
   try {
@@ -103,6 +103,7 @@ async function loadSummaryClient() {
       return;
     }
 
+    // Phải khớp chính xác với key trong JSON
     const machineKey = 'LAMINATION MACHINE (PLAN)';
     const qtyKey     = 'Total Qty';
 
@@ -266,7 +267,7 @@ async function loadDetailsClient(machine) {
 // -----------------------------------
 async function searchOrders() {
   const query = searchBox.value.trim().toUpperCase();
-  const fieldKey = searchField.value; // ví dụ: "PRO ODER" hoặc "Brand Code" hoặc "#MOLDED" hoặc "PU"
+  const fieldKey = searchField.value; // Giá trị key (ví dụ: "PRO ODER", "Brand Code", "#MOLDED", "PU")
   if (!query) {
     searchResult.innerHTML = '';
     return;
@@ -281,20 +282,19 @@ async function searchOrders() {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
-    // Lọc các dòng chứa query trong fieldKey (substring, không phân biệt hoa/thường)
     const results = data.filter(row => {
       const cellValue = (row[fieldKey] || '').toString().toUpperCase();
       return cellValue.includes(query);
     }).map(row => ({
-      order:       row['PRO ODER'] || '',
-      brandCode:   row['Brand Code'] || '',
-      productType: row['#MOLDED'] || '',
-      pu:          row['PU'] || '',
+      order:       row['PRO ODER']       || '',
+      brandCode:   row['Brand Code']     || '',
+      productType: row['#MOLDED']        || '',
+      pu:          row['PU']             || '',
       quantity:    Number(row['Total Qty']?.toString().replace(/,/g, '')) || 0,
       machine:     row['LAMINATION MACHINE (PLAN)'] || ''
     }));
 
-    let html = `<h3 class="font-semibold mb-2">Kết quả tìm kiếm theo "${fieldKey}": "${searchBox.value}"</h3>`;
+    let html = `<h3 class="font-semibold mb-2">Kết quả Tìm "${searchBox.value}" theo "${searchField.options[searchField.selectedIndex].text}"</h3>`;
     if (results.length === 0) {
       html += `<p>Không tìm thấy kết quả nào.</p>`;
     } else {
@@ -329,7 +329,7 @@ async function searchOrders() {
     html += `<button id="btnClearAfter" class="mt-4 px-4 py-2 bg-gray-300 text-gray-800 rounded">Quay lại</button>`;
     searchResult.innerHTML = html;
 
-    // Khi click vào 1 dòng trong kết quả tìm, tự động show chi tiết cho machine tương ứng
+    // Khi click vào 1 dòng kết quả, hiển Detail cho máy tương ứng
     document.querySelectorAll('#searchResult tbody tr[data-machine]').forEach(tr => {
       tr.addEventListener('click', () => {
         const machine = tr.dataset.machine;
@@ -337,7 +337,7 @@ async function searchOrders() {
       });
     });
 
-    // Xử lý nút "Quay lại" để xóa kết quả tìm và hiện Summary lại
+    // Nút “Quay lại” để xóa kết quả tìm và hiển Summary lại
     document.getElementById('btnClearAfter').addEventListener('click', () => {
       searchResult.innerHTML = '';
       loadSummaryClient();
@@ -360,12 +360,10 @@ function clearSearch() {
 // -----------------------------------
 // --- INITIALIZATION ---
 // -----------------------------------
-
-// Gắn sự kiện cho 4 nút:
 btnRaw.addEventListener('click', loadRaw);
 btnSummary.addEventListener('click', loadSummaryClient);
 btnSearch.addEventListener('click', searchOrders);
 btnClearSearch.addEventListener('click', clearSearch);
 
-// Khi trang load, tự động hiện Summary lần đầu
+// Khi trang load, hiển Summary View mặc định
 loadSummaryClient();

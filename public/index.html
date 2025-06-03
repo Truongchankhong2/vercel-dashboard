@@ -1,36 +1,37 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Centre Line Schedule Dashboard</title>
-  <!-- CSS (Tailwind CDN hoặc content-all.css) -->
+  <title>Dashboard Tổng Hợp</title>
+  <!-- Dùng Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 min-h-screen p-6">
 
-  <!-- Thanh tìm kiếm: chọn trường + input + nút -->
+  <!-- =============================
+       Thanh Tìm Kiếm (Việt Hóa)
+       ============================= -->
   <div class="mb-4 flex flex-col sm:flex-row sm:items-center sm:space-x-4">
-    <!-- Dropdown chọn trường tìm kiếm -->
-    <label class="block text-sm font-medium text-gray-700 mb-2 sm:mb-0">
+    <label for="searchField" class="block text-sm font-medium text-gray-700 mb-2 sm:mb-0">
       Tìm theo:
     </label>
-    <select id="searchField" class="border border-gray-300 rounded px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-      <option value="PRO ODER">Order</option>
-      <option value="Brand Code">Brand Code</option>
-      <option value="#MOLDED">Product Type</option>
-      <option value="PU">PU</option>
+    <select id="searchField"
+            class="border border-gray-300 rounded px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+      <!-- value vẫn phải khớp với tên field trong powerapp.json -->
+      <option value="PRO ODER">RPRO</option>
+      <option value="Brand Code">Khách Hàng</option>
+      <option value="#MOLDED">Loại Hàng</option>
+      <option value="PU">Mã PU</option>
     </select>
 
-    <!-- Ô nhập từ khóa tìm -->
     <input
       type="text"
       id="searchBox"
-      placeholder="Nhập nội dung tìm..."
+      placeholder="Nhập từ khóa..."
       class="mt-2 sm:mt-0 border border-gray-300 rounded px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 flex-1"
     />
 
-    <!-- Nút Tìm và Xóa -->
     <div class="mt-2 sm:mt-0 flex space-x-2">
       <button
         id="btnSearch"
@@ -47,20 +48,37 @@
     </div>
   </div>
 
-  <!-- Nơi hiển thị kết quả tìm kiếm -->
+  <!-- Kết quả tìm kiếm sẽ chèn ở đây -->
   <div id="searchResult" class="mb-6"></div>
 
-  <!-- Nút Raw / Summary và thời gian cập nhật -->
+  <!-- ==============================
+       Nút Raw View / Summary View
+       và Thời gian cập nhật
+       ============================== -->
   <div class="flex items-center space-x-2 mb-4">
-    <button id="btn-raw" class="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400">Raw View</button>
-    <button id="btn-summary" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Summary View</button>
+    <button
+      id="btn-raw"
+      class="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400"
+    >
+      Raw View
+    </button>
+    <button
+      id="btn-summary"
+      class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+    >
+      Summary View
+    </button>
     <span id="last-updated" class="ml-auto text-sm text-gray-600">Cập nhật: --:--:--</span>
   </div>
 
-  <!-- Container để hiển thị bảng Raw/Summary -->
+  <!-- ==============================
+       Container hiển thị bảng Raw/Summary
+       ============================== -->
   <div id="table-container" class="bg-white shadow rounded overflow-x-auto mb-6"></div>
 
-  <!-- Container để hiển thị bảng Details -->
+  <!-- ==============================
+       Container hiển thị bảng Details
+       ============================== -->
   <div id="details-container" class="bg-white shadow rounded overflow-x-auto"></div>
 
   <!-- Chèn script.js -->
