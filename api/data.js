@@ -1,16 +1,11 @@
-import data from '../public/powerapp.json' assert { type: 'json' };
+import { readPowerAppJSON } from '../utils.js';
 
-// Khi client gọi GET /api/data, trả về toàn bộ “data” dưới dạng mảng mảng (array of arrays)
-export default function handler(req, res) {
-  // data là mảng object (JSON) → chuyển thành mảng mảng (header + các dòng) để Raw View hiển thị
+export default async function handler(req, res) {
+  const data = await readPowerAppJSON(req);
   if (!Array.isArray(data) || data.length === 0) {
-    return res.status(500).json({ error: 'No data found' });
+    return res.status(200).json([]);
   }
-
-  // Lấy header là key của object đầu tiên
-  const keys = Object.keys(data[0]);
-  // Mỗi row object → chuyển về array theo thứ tự keys
-  const rows = [keys, ...data.map(row => keys.map(k => row[k] ?? ''))];
-
-  res.status(200).json(rows);
+  const header = Object.keys(data[0]);
+  const rows = data.map(item => Object.values(item));
+  res.status(200).json([header, ...rows]);
 }
