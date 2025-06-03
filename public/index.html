@@ -4,21 +4,17 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Dashboard Tổng Hợp</title>
-  <!-- Dùng Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 min-h-screen p-6">
 
-  <!-- =============================
-       Thanh Tìm Kiếm (Việt Hóa)
-       ============================= -->
+  <!-- ==== Thanh Tìm chính ==== -->
   <div class="mb-4 flex flex-col sm:flex-row sm:items-center sm:space-x-4">
     <label for="searchField" class="block text-sm font-medium text-gray-700 mb-2 sm:mb-0">
       Tìm theo:
     </label>
     <select id="searchField"
             class="border border-gray-300 rounded px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-      <!-- value vẫn phải khớp với tên field trong powerapp.json -->
       <option value="PRO ODER">RPRO</option>
       <option value="Brand Code">Khách Hàng</option>
       <option value="#MOLDED">Loại Hàng</option>
@@ -33,55 +29,27 @@
     />
 
     <div class="mt-2 sm:mt-0 flex space-x-2">
-      <button
-        id="btnSearch"
-        class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 text-sm"
-      >
-        Tìm
-      </button>
-      <button
-        id="btnClearSearch"
-        class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
-      >
-        Xóa
-      </button>
+      <button id="btnSearch" class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 text-sm">Tìm</button>
+      <button id="btnClearSearch" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 text-sm">Xóa</button>
     </div>
   </div>
 
-  <!-- Kết quả tìm kiếm sẽ chèn ở đây -->
+  <!-- Kết quả tìm kiếm chính -->
   <div id="searchResult" class="mb-6"></div>
 
-  <!-- ==============================
-       Nút Raw View / Summary View
-       và Thời gian cập nhật
-       ============================== -->
+  <!-- ==== Nút Raw / Summary / Cập nhật ==== -->
   <div class="flex items-center space-x-2 mb-4">
-    <button
-      id="btn-raw"
-      class="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400"
-    >
-      Raw View
-    </button>
-    <button
-      id="btn-summary"
-      class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-    >
-      Summary View
-    </button>
+    <button id="btn-raw" class="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400">Raw View</button>
+    <button id="btn-summary" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Summary View</button>
     <span id="last-updated" class="ml-auto text-sm text-gray-600">Cập nhật: --:--:--</span>
   </div>
 
-  <!-- ==============================
-       Container hiển thị bảng Raw/Summary
-       ============================== -->
+  <!-- ==== Container bảng Raw/Summary ==== -->
   <div id="table-container" class="bg-white shadow rounded overflow-x-auto mb-6"></div>
 
-  <!-- ==============================
-       Container hiển thị bảng Details
-       ============================== -->
+  <!-- ==== Container bảng Details (và thanh tìm kiếm riêng) ==== -->
   <div id="details-container" class="bg-white shadow rounded overflow-x-auto"></div>
 
-  <!-- Chèn script.js -->
   <script src="/script.js"></script>
 </body>
 </html>

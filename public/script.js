@@ -1,16 +1,16 @@
 // public/script.js
 
-// --- DOM elements ---
-const container = document.getElementById('table-container');
+// --- DOM elements chung ---
+const container        = document.getElementById('table-container');
 const detailsContainer = document.getElementById('details-container');
-const searchBox = document.getElementById('searchBox');
-const searchField = document.getElementById('searchField');
-const btnSearch = document.getElementById('btnSearch');
-const btnClearSearch = document.getElementById('btnClearSearch');
-const searchResult = document.getElementById('searchResult');
-const lastUpdatedEl = document.getElementById('last-updated');
-const btnRaw = document.getElementById('btn-raw');
-const btnSummary = document.getElementById('btn-summary');
+const searchBox        = document.getElementById('searchBox');
+const searchField      = document.getElementById('searchField');
+const btnSearch        = document.getElementById('btnSearch');
+const btnClearSearch   = document.getElementById('btnClearSearch');
+const searchResult     = document.getElementById('searchResult');
+const lastUpdatedEl    = document.getElementById('last-updated');
+const btnRaw           = document.getElementById('btn-raw');
+const btnSummary       = document.getElementById('btn-summary');
 
 // --- Utility functions ---
 function updateTimestamp() {
@@ -19,6 +19,7 @@ function updateTimestamp() {
 
 function setBtnLoading(btn, isLoading) {
   btn.disabled = isLoading;
+  if (!btn) return;
   if (btn.id === 'btn-raw') {
     btn.textContent = isLoading ? 'Loading…' : 'Raw View';
   } else if (btn.id === 'btn-summary') {
@@ -60,10 +61,12 @@ async function loadRaw() {
     } else {
       let html = '<table class="min-w-full table-auto border-collapse">';
       html += '<thead class="bg-gray-50"><tr>';
+      // Header
       rows[0].forEach((_, i) => {
         html += `<th class="border px-2 py-1 text-left text-sm font-medium text-gray-700">Cột ${i + 1}</th>`;
       });
       html += '</tr></thead><tbody>';
+      // Dữ liệu
       rows.slice(1).forEach(r => {
         html += '<tr class="hover:bg-gray-100">';
         r.forEach(cell => {
@@ -97,16 +100,16 @@ async function loadSummaryClient() {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
-    console.log('[DEBUG] raw JSON length =', data.length);
     if (!Array.isArray(data) || data.length === 0) {
       container.innerHTML = '<div class="text-center py-4">Không có dữ liệu summary</div>';
       return;
     }
 
-    // Phải khớp chính xác với key trong JSON
+    // Key chính xác trong JSON
     const machineKey = 'LAMINATION MACHINE (PLAN)';
     const qtyKey     = 'Total Qty';
 
+    // Tổng hợp số lượng theo máy
     const machineMap = {};
     data.forEach(row => {
       const machine = (row[machineKey] || '').toString().trim();
@@ -116,18 +119,20 @@ async function loadSummaryClient() {
     });
 
     const result = Object.entries(machineMap).map(([machine, total]) => ({ machine, total }));
-    console.log('[DEBUG] Summary data (client) =', result);
+
     if (result.length === 0) {
       container.innerHTML = '<div class="text-center py-4">Không có dữ liệu summary</div>';
       return;
     }
 
+    // Sắp xếp theo số cuối (nếu có) hoặc giữ nguyên
     result.sort((a, b) => {
       const aNum = parseInt((a.machine.match(/\d+$/) || ['0'])[0], 10);
       const bNum = parseInt((b.machine.match(/\d+$/) || ['0'])[0], 10);
       return aNum - bNum;
     });
 
+    // Xây dựng bảng summary
     let totalAll = 0;
     let html = `
       <table id="summary-table" class="min-w-full divide-y divide-gray-200">
@@ -158,6 +163,7 @@ async function loadSummaryClient() {
     `;
     container.innerHTML = html;
 
+    // Bắt sự kiện click từng máy để load detail tương ứng
     document.querySelectorAll('#summary-table tbody tr[data-machine]').forEach(tr => {
       tr.addEventListener('click', () => {
         const machine = tr.dataset.machine;
@@ -175,17 +181,62 @@ async function loadSummaryClient() {
 }
 
 // -----------------------------------
-// --- DETAILS VIEW (chi tiết cho từng máy) ---
+// --- DETAILS VIEW (kèm thanh tìm riêng) ---
 // -----------------------------------
 async function loadDetailsClient(machine) {
-  showDetails();
-  detailsContainer.innerHTML = '<div class="text-center py-4">Loading details…</div>';
+  // Hiện khung chi tiết
+  detailsContainer.classList.remove('hidden');
 
+  // Khi bắt đầu, xoá nội dung cũ
+  detailsContainer.innerHTML = '';
+
+  // 1. Thêm ngay “Thanh Tìm riêng cho Chi tiết” (Việt hóa)
+  const detailSearchHTML = `
+    <div id="detail-search-bar" class="mb-4 flex flex-col sm:flex-row sm:items-center sm:space-x-4">
+      <label for="detailSearchField" class="block text-sm font-medium text-gray-700 mb-2 sm:mb-0">
+        Tìm theo máy:
+      </label>
+      <select id="detailSearchField"
+              class="border border-gray-300 rounded px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <option value="PRO ODER">RPRO</option>
+        <option value="Brand Code">Khách Hàng</option>
+        <option value="#MOLDED">Loại Hàng</option>
+        <option value="PU">Mã PU</option>
+      </select>
+
+      <input
+        type="text"
+        id="detailSearchBox"
+        placeholder="Nhập từ khóa chi tiết..."
+        class="mt-2 sm:mt-0 border border-gray-300 rounded px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 flex-1"
+      />
+
+      <div class="mt-2 sm:mt-0 flex space-x-2">
+        <button
+          id="detailBtnSearch"
+          class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 text-sm"
+        >
+          Tìm Chi Tiết
+        </button>
+        <button
+          id="detailBtnClear"
+          class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
+        >
+          Xóa Chi Tiết
+        </button>
+      </div>
+    </div>
+  `;
+  // 2. Thêm khung trong detailsContainer
+  detailsContainer.insertAdjacentHTML('beforeend', detailSearchHTML);
+
+  // Tiếp theo là fetch data và build bảng chi tiết giống trước
   try {
     const res = await fetch('/powerapp.json', { cache: 'no-store' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
+    // Khóa trong JSON
     const machineKey     = 'LAMINATION MACHINE (PLAN)';
     const qtyKey         = 'Total Qty';
     const orderKey       = 'PRO ODER';
@@ -193,6 +244,7 @@ async function loadDetailsClient(machine) {
     const productTypeKey = '#MOLDED';
     const puKey          = 'PU';
 
+    // Lọc ra các dòng thuộc máy này
     const filtered = data
       .filter(row => (row[machineKey] || '').toString().trim() === machine)
       .map(row => ({
@@ -204,19 +256,19 @@ async function loadDetailsClient(machine) {
       }));
 
     if (filtered.length === 0) {
-      detailsContainer.innerHTML = `<div class="text-center py-4">Không có chi tiết cho “${machine}”</div>`;
+      detailsContainer.insertAdjacentHTML(
+        'beforeend',
+        `<div class="text-center py-4">Không có chi tiết cho “${machine}”</div>`
+      );
       return;
     }
 
-    // Tạo colorMap cho từng nhóm PU
+    // Tạo colorMap như trước (giữ nguyên)
     const uniquePUs = [];
     filtered.forEach(item => {
       const pu = item.pu || '(No PU)';
-      if (!uniquePUs.includes(pu)) {
-        uniquePUs.push(pu);
-      }
+      if (!uniquePUs.includes(pu)) uniquePUs.push(pu);
     });
-
     const colorMap = {};
     const N = uniquePUs.length;
     uniquePUs.forEach((pu, idx) => {
@@ -228,9 +280,10 @@ async function loadDetailsClient(machine) {
       }
     });
 
+    // Xây dựng bảng chi tiết (với id="detail-table")
     let html = `<h2 class="text-lg font-semibold mb-2">Chi tiết đơn cho: ${machine}</h2>`;
     html += `
-      <table class="min-w-full divide-y divide-gray-200">
+      <table id="detail-table" class="min-w-full divide-y divide-gray-200">
         <thead class="bg-gray-50">
           <tr>
             <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Order</th>
@@ -255,10 +308,66 @@ async function loadDetailsClient(machine) {
         </tr>`;
     });
     html += `</tbody></table>`;
-    detailsContainer.innerHTML = html;
+    detailsContainer.insertAdjacentHTML('beforeend', html);
+
+    // === Thiết lập chức năng “Tìm riêng cho Chi tiết” ===
+
+    // Lấy tham chiếu đến các element tìm kiếm riêng
+    const detailSearchField = document.getElementById('detailSearchField');
+    const detailSearchBox   = document.getElementById('detailSearchBox');
+    const detailBtnSearch   = document.getElementById('detailBtnSearch');
+    const detailBtnClear    = document.getElementById('detailBtnClear');
+    const detailTable       = document.getElementById('detail-table');
+
+    // Hàm lọc các hàng trong bảng chi tiết
+    function filterDetailTable() {
+      const query = detailSearchBox.value.trim().toUpperCase();
+      const fieldKey = detailSearchField.value; // ví dụ: "PRO ODER", "Brand Code", "#MOLDED", "PU"
+      if (!query) {
+        // Nếu query rỗng, hiện lại tất cả hàng
+        Array.from(detailTable.tBodies[0].rows).forEach(row => {
+          row.style.display = '';
+        });
+        return;
+      }
+
+      // Xác định cột cần soát: mapping fieldKey → index cột
+      const columnIndexMap = {
+        'PRO ODER':   0,
+        'Brand Code': 1,
+        '#MOLDED':    2,
+        'PU':         3
+      };
+      const colIndex = columnIndexMap[fieldKey];
+
+      Array.from(detailTable.tBodies[0].rows).forEach(row => {
+        const cellText = row.cells[colIndex].textContent.trim().toUpperCase();
+        if (cellText.includes(query)) {
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+    }
+
+    // Khi nhấn nút “Tìm Chi Tiết”
+    detailBtnSearch.addEventListener('click', () => {
+      filterDetailTable();
+    });
+
+    // Khi nhấn “Xóa Chi Tiết”
+    detailBtnClear.addEventListener('click', () => {
+      detailSearchBox.value = '';
+      filterDetailTable(); // sẽ show lại hết
+    });
+
+    updateTimestamp();
   } catch (e) {
     console.error('[ERROR] loadDetailsClient failed:', e);
-    detailsContainer.innerHTML = `<div class="text-center text-red-500 py-4">Lỗi tải chi tiết cho “${machine}”</div>`;
+    detailsContainer.insertAdjacentHTML(
+      'beforeend',
+      `<div class="text-center text-red-500 py-4">Lỗi tải chi tiết cho “${machine}”</div>`
+    );
   }
 }
 
@@ -267,7 +376,7 @@ async function loadDetailsClient(machine) {
 // -----------------------------------
 async function searchOrders() {
   const query = searchBox.value.trim().toUpperCase();
-  const fieldKey = searchField.value; // Giá trị key (ví dụ: "PRO ODER", "Brand Code", "#MOLDED", "PU")
+  const fieldKey = searchField.value; // ví dụ: "PRO ODER", "Brand Code", "#MOLDED", "PU"
   if (!query) {
     searchResult.innerHTML = '';
     return;
@@ -282,6 +391,7 @@ async function searchOrders() {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
+    // Lọc mảng JSON theo fieldKey và substring
     const results = data.filter(row => {
       const cellValue = (row[fieldKey] || '').toString().toUpperCase();
       return cellValue.includes(query);
@@ -294,7 +404,7 @@ async function searchOrders() {
       machine:     row['LAMINATION MACHINE (PLAN)'] || ''
     }));
 
-    let html = `<h3 class="font-semibold mb-2">Kết quả Tìm "${searchBox.value}" theo "${searchField.options[searchField.selectedIndex].text}"</h3>`;
+    let html = `<h3 class="font-semibold mb-2">Kết quả tìm "${searchBox.value}" theo "${searchField.options[searchField.selectedIndex].text}"</h3>`;
     if (results.length === 0) {
       html += `<p>Không tìm thấy kết quả nào.</p>`;
     } else {
@@ -329,7 +439,7 @@ async function searchOrders() {
     html += `<button id="btnClearAfter" class="mt-4 px-4 py-2 bg-gray-300 text-gray-800 rounded">Quay lại</button>`;
     searchResult.innerHTML = html;
 
-    // Khi click vào 1 dòng kết quả, hiển Detail cho máy tương ứng
+    // Bắt sự kiện click vào mỗi dòng kết quả để show Detail tương ứng
     document.querySelectorAll('#searchResult tbody tr[data-machine]').forEach(tr => {
       tr.addEventListener('click', () => {
         const machine = tr.dataset.machine;
@@ -337,7 +447,7 @@ async function searchOrders() {
       });
     });
 
-    // Nút “Quay lại” để xóa kết quả tìm và hiển Summary lại
+    // Nút “Quay lại”
     document.getElementById('btnClearAfter').addEventListener('click', () => {
       searchResult.innerHTML = '';
       loadSummaryClient();
@@ -365,5 +475,5 @@ btnSummary.addEventListener('click', loadSummaryClient);
 btnSearch.addEventListener('click', searchOrders);
 btnClearSearch.addEventListener('click', clearSearch);
 
-// Khi trang load, hiển Summary View mặc định
+// Khi trang load, hiển Summary mặc định
 loadSummaryClient();
