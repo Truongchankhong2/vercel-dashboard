@@ -489,18 +489,7 @@ function clearSearch() {
 // --- REFRESH BUTTON LOGIC ---
 // -----------------------------------
 btnRefresh.addEventListener('click', () => {
-  // Khi click “Refresh”, tuỳ theo currentView mà gọi lại hàm tương ứng
-  setBtnLoading(btnRefresh, true);
-  if (currentView === 'summary') {
-    loadSummaryClient().finally(() => setBtnLoading(btnRefresh, false));
-  } else if (currentView === 'raw') {
-    loadRaw().finally(() => setBtnLoading(btnRefresh, false));
-  } else if (currentView === 'detail' && currentMachine) {
-    loadDetailsClient(currentMachine).finally(() => setBtnLoading(btnRefresh, false));
-  } else {
-    // Mặc định fallback về Summary
-    loadSummaryClient().finally(() => setBtnLoading(btnRefresh, false));
-  }
+  window.location.reload();
 });
 
 // -----------------------------------
