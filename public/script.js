@@ -319,7 +319,7 @@ async function loadDetailsClient(machine) {
 
     // Các cột cần hiển thị
     const selectedColumns = [
-      'PRO ODER', 'Brand code', '#MOLDED', 'Total Qty', 'STATUS', 'PU',
+      'PRO ODER', 'Brand Code', '#MOLDED', 'Total Qty', 'STATUS', 'PU',
       'LAMINATION MACHINE (PLAN)', 'LAMINATION MACHINE (REALTIME)', 'Check'
     ];
     const selectedIndexes = selectedColumns.map(col => headers.indexOf(col));
