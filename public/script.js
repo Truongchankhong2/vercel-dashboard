@@ -350,8 +350,8 @@ let html = `
     </div>
   </div>
 
-  <div class="overflow-x-auto overflow-y-auto max-h-[70vh] whitespace-nowrap">
-
+  <div class="w-full overflow-x-auto max-h-[70vh]">
+  <div class="min-w-[800px] inline-block">
     <table class="min-w-full text-sm border border-gray-300 bg-white shadow" id="detailsTable">
       <thead class="bg-gray-100 text-left">
         <tr>
@@ -376,6 +376,8 @@ let html = `
       </tbody>
     </table>
   </div>
+</div>
+
 `;
 
 detailsContainer.innerHTML = html;
