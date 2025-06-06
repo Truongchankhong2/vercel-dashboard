@@ -317,26 +317,41 @@ async function loadDetailsClient(machine) {
 
     const [headers, ...rows] = data;
 
-    // Chỉ lấy các cột bạn cần:
+    // Các cột cần hiển thị
     const selectedColumns = [
       'PRO ODER', 'Brand code', '#MOLDED', 'Total Qty', 'STATUS', 'PU',
       'LAMINATION MACHINE (PLAN)', 'LAMINATION MACHINE (REALTIME)', 'Check'
     ];
-
     const selectedIndexes = selectedColumns.map(col => headers.indexOf(col));
     const headerRow = selectedColumns;
 
-    // Tạo thanh tìm kiếm
+    // Cột có thể tìm kiếm
+    const searchableOptions = [
+      'PRO ODER', 'Brand code', '#MOLDED', 'PU',
+      'LAMINATION MACHINE (PLAN)', 'LAMINATION MACHINE (REALTIME)'
+    ];
+
     let html = `
       <div class="flex justify-between items-center mb-2">
         <h2 class="text-xl font-bold">Chi tiết máy: ${machine}</h2>
         <button onclick="hideDetails()" class="text-blue-600 underline">Quay lại</button>
       </div>
-      <input id="detailsSearchBox" type="text" placeholder="Tìm kiếm PRO, Brand, PU..." class="border px-2 py-1 mb-2 w-full rounded">
+
+      <div class="flex gap-2 mb-3">
+        <select id="detailsColumnSelect" class="border px-2 py-1 rounded">
+          ${searchableOptions.map(opt => `<option value="${opt}">${opt}</option>`).join('')}
+        </select>
+        <input id="detailsSearchInput" type="text" placeholder="Nhập từ khóa..." class="border px-2 py-1 flex-1 rounded">
+        <button id="detailsSearchBtn" class="bg-blue-600 text-white px-4 py-1 rounded">Tìm kiếm</button>
+      </div>
+
       <div class="overflow-auto max-h-[70vh]">
         <table class="min-w-full text-sm border border-gray-300 bg-white shadow" id="detailsTable">
           <thead class="bg-gray-100 text-left">
-            <tr><th class="border px-2 py-1">STT</th>${headerRow.map(h => `<th class="border px-2 py-1">${h}</th>`).join('')}</tr>
+            <tr>
+              <th class="border px-2 py-1">STT</th>
+              ${headerRow.map(h => `<th class="border px-2 py-1">${h}</th>`).join('')}
+            </tr>
           </thead>
           <tbody>
             ${rows.map((row, idx) => {
@@ -352,16 +367,18 @@ async function loadDetailsClient(machine) {
 
     detailsContainer.innerHTML = html;
 
-    // 🔍 Bắt sự kiện tìm kiếm
-    document.getElementById('detailsSearchBox').addEventListener('input', function () {
-      const keyword = this.value.toLowerCase();
+    // Tìm kiếm khi nhấn nút
+    document.getElementById('detailsSearchBtn').addEventListener('click', () => {
+      const keyword = document.getElementById('detailsSearchInput').value.trim().toLowerCase();
+      const column = document.getElementById('detailsColumnSelect').value;
+      const colIndex = headers.indexOf(column);
       const table = document.getElementById('detailsTable');
       const rows = table.querySelectorAll('tbody tr');
 
       rows.forEach(row => {
-        const text = row.innerText.toLowerCase();
-        const match = keyword.split(' ').every(word => text.includes(word));
-        row.style.display = match ? '' : 'none';
+        const cell = row.querySelectorAll('td')[colIndex + 1]; // +1 do có cột STT
+        const text = cell?.textContent.toLowerCase() || '';
+        row.style.display = text.includes(keyword) ? '' : 'none';
       });
     });
 
@@ -370,6 +387,7 @@ async function loadDetailsClient(machine) {
     detailsContainer.innerHTML = `<div class="text-red-500 text-center py-4">Lỗi tải dữ liệu</div>`;
   }
 }
+
 
 
 
