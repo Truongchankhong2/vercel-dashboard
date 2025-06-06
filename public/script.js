@@ -15,6 +15,17 @@ const progressSearchBox = document.getElementById('progressSearchBox');
 const progressBtnSearch = document.getElementById('progressBtnSearch');
 const progressBtnClear  = document.getElementById('progressBtnClear');
 
+// đổi tên cho dễ đọc
+const headerDisplayMap = {
+  'PRO ODER': 'Order Code',
+  'Brand Code': 'Brand',
+  'Total Qty': 'PO Quantity (Pairs)',
+  'STATUS': 'Status-Trạng thái đơn',
+  'PU': 'PU Type',
+  'LAMINATION MACHINE (PLAN)': 'Plan Machine',
+  'LAMINATION MACHINE (REALTIME)': 'Actual Machine',
+  'Check': 'Verify'
+};
 // Track view hiện tại: 'summary' | 'raw' | 'progress' | 'detail'
 let currentView   = 'summary';
 let currentMachine = null;
@@ -147,7 +158,7 @@ async function loadSummary() {
         <thead class="bg-gray-50">
           <tr>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Machine</th>
-            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total Quantity</th>
+            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Quantity Pair Plan (Kế hoạch)</th>
           </tr>
         </thead>
         <tbody class="bg-white divide-y divide-gray-200">
@@ -357,11 +368,13 @@ let html = `
         <tr>
           <th class="border px-2 py-1">STT</th>
           ${headerRow.map(h => {
+            const displayName = headerDisplayMap[h] || h;
             const isMachineCol = h.includes('MACHINE');
-            return `<th class="border px-2 py-1 ${isMachineCol ? 'max-w-[150px] truncate' : ''}">${h}</th>`;
+            return `<th class="border px-2 py-1 ${isMachineCol ? 'max-w-[150px] truncate' : ''}">${displayName}</th>`;
           }).join('')}
         </tr>
       </thead>
+
       <tbody>
 </tbody>
 
