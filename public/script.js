@@ -327,7 +327,7 @@ async function loadDetailsClient(machine) {
 
     // Cột có thể tìm kiếm
     const searchableOptions = [
-      'PRO ODER', 'Brand code', '#MOLDED', 'PU',
+      'PRO ODER', 'Brand Code', '#MOLDED', 'PU',
       'LAMINATION MACHINE (PLAN)', 'LAMINATION MACHINE (REALTIME)'
     ];
 
