@@ -350,14 +350,22 @@ async function loadDetailsClient(machine) {
           <thead class="bg-gray-100 text-left">
             <tr>
               <th class="border px-2 py-1">STT</th>
-              ${headerRow.map(h => `<th class="border px-2 py-1">${h}</th>`).join('')}
+              ${headerRow.map(h => {
+  const isMachineCol = h.includes('MACHINE');
+  return `<th class="border px-2 py-1 ${isMachineCol ? 'max-w-[150px] truncate' : ''}">${h}</th>`;
+}).join('')}
+
             </tr>
           </thead>
           <tbody>
             ${rows.map((row, idx) => {
               return `<tr>
                 <td class="border px-2 py-1">${idx + 1}</td>
-                ${selectedIndexes.map(i => `<td class="border px-2 py-1">${row[i]}</td>`).join('')}
+                ${selectedIndexes.map(i => {
+  const isMachineCol = headers[i].includes('MACHINE');
+  return `<td class="border px-2 py-1 ${isMachineCol ? 'max-w-[150px] truncate' : ''}">${row[i]}</td>`;
+}).join('')}
+
               </tr>`;
             }).join('')}
           </tbody>
