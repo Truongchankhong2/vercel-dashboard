@@ -383,14 +383,15 @@ let html = `
 `;
 
 detailsContainer.innerHTML = html;
-// 1. Tạo danh sách chi tiết từ rows
-const details = rows.map((row, idx) => {
-  const obj = { STT: idx + 1 };
+// Tạo danh sách chi tiết (chưa gán STT)
+const details = rows.map(row => {
+  const obj = {};
   selectedColumns.forEach((key, j) => {
     obj[key] = row[selectedIndexes[j]] ?? '';
   });
   return obj;
 });
+
 
 // 2. Sắp xếp theo PU → Brand Code → PRO ODER
 details.sort((a, b) => {
@@ -402,6 +403,10 @@ details.sort((a, b) => {
     if (va > vb) return 1;
   }
   return 0;
+});
+
+details.forEach((d, i) => {
+  d.STT = i + 1;
 });
 
 // 3. Tô màu theo PU
