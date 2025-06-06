@@ -337,13 +337,19 @@ async function loadDetailsClient(machine) {
         <button onclick="hideDetails()" class="text-blue-600 underline">Quay lại</button>
       </div>
 
-      <div class="flex gap-2 mb-3">
-        <select id="detailsColumnSelect" class="border px-2 py-1 rounded">
-          ${searchableOptions.map(opt => `<option value="${opt}">${opt}</option>`).join('')}
-        </select>
-        <input id="detailsSearchInput" type="text" placeholder="Nhập từ khóa..." class="border px-2 py-1 flex-1 rounded">
-        <button id="detailsSearchBtn" class="bg-blue-600 text-white px-4 py-1 rounded">Tìm kiếm</button>
-      </div>
+      <div class="mb-3 space-y-2">
+  <select id="detailsColumnSelect" class="w-full border px-2 py-1 rounded">
+    ${searchableOptions.map(opt => `<option value="${opt}">${opt}</option>`).join('')}
+  </select>
+
+  <input id="detailsSearchInput" type="text" placeholder="Nhập từ khóa..." class="w-1/3 border px-2 py-1 rounded">
+
+  <div class="flex gap-2">
+    <button id="detailsSearchBtn" class="bg-blue-600 text-white px-4 py-1 rounded flex-1">Tìm kiếm</button>
+    <button id="detailsClearBtn" class="bg-gray-400 text-white px-4 py-1 rounded">Xóa</button>
+  </div>
+</div>
+
 
       <div class="overflow-auto max-h-[70vh]">
         <table class="min-w-full text-sm border border-gray-300 bg-white shadow" id="detailsTable">
@@ -391,6 +397,12 @@ async function loadDetailsClient(machine) {
     const text = cell?.textContent.toLowerCase() || '';
     row.style.display = text.includes(keyword) ? '' : 'none';
   });
+ // xóa
+  document.getElementById('detailsClearBtn').addEventListener('click', () => {
+  document.getElementById('detailsSearchInput').value = '';
+  const rows = document.querySelectorAll('#detailsTable tbody tr');
+  rows.forEach(row => row.style.display = '');
+});
 });
 
 
