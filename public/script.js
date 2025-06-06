@@ -303,11 +303,45 @@ async function loadDetailsClient(machine) {
   currentView = 'detail';
   currentMachine = machine;
 
-  // (Ở ví dụ này ta không tự động gọi – tạm để ẩn)
   detailsContainer.classList.remove('hidden');
   detailsContainer.innerHTML = '<div class="text-center py-4">Loading chi tiết…</div>';
-  // Bạn có thể thêm logic tương tự loadProgress để lấy và vẽ chi tiết
+
+  try {
+    const res = await fetch(`/api/details?machine=${encodeURIComponent(machine)}`);
+    const data = await res.json();
+
+    if (!Array.isArray(data) || data.length === 0) {
+      detailsContainer.innerHTML = `<div class="text-center py-4">Không có dữ liệu cho máy ${machine}</div>`;
+      return;
+    }
+
+    const [headers, ...rows] = data;
+    let html = `
+      <div class="flex justify-between items-center mb-2">
+        <h2 class="text-xl font-bold">Chi tiết máy: ${machine}</h2>
+        <button onclick="hideDetails()" class="text-blue-600 underline">Quay lại</button>
+      </div>
+      <div class="overflow-auto max-h-[70vh]">
+        <table class="min-w-full text-sm border border-gray-300 bg-white shadow">
+          <thead class="bg-gray-100 text-left">
+            <tr>${headers.map(h => `<th class="border px-2 py-1">${h}</th>`).join('')}</tr>
+          </thead>
+          <tbody>
+            ${rows.map(row => `
+              <tr>${row.map(cell => `<td class="border px-2 py-1">${cell}</td>`).join('')}</tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    detailsContainer.innerHTML = html;
+  } catch (err) {
+    console.error('DETAILS LOAD ERROR:', err);
+    detailsContainer.innerHTML = `<div class="text-red-500 text-center py-4">Lỗi tải dữ liệu</div>`;
+  }
 }
+
 
 // -----------------------------------
 // --- REFRESH BUTTON (F5) ---
