@@ -316,31 +316,61 @@ async function loadDetailsClient(machine) {
     }
 
     const [headers, ...rows] = data;
+
+    // Chỉ lấy các cột bạn cần:
+    const selectedColumns = [
+      'PRO ODER', 'Brand code', '#MOLDED', 'Total Qty', 'STATUS', 'PU',
+      'LAMINATION MACHINE (PLAN)', 'LAMINATION MACHINE (REALTIME)', 'Check'
+    ];
+
+    const selectedIndexes = selectedColumns.map(col => headers.indexOf(col));
+    const headerRow = selectedColumns;
+
+    // Tạo thanh tìm kiếm
     let html = `
       <div class="flex justify-between items-center mb-2">
         <h2 class="text-xl font-bold">Chi tiết máy: ${machine}</h2>
         <button onclick="hideDetails()" class="text-blue-600 underline">Quay lại</button>
       </div>
+      <input id="detailsSearchBox" type="text" placeholder="Tìm kiếm PRO, Brand, PU..." class="border px-2 py-1 mb-2 w-full rounded">
       <div class="overflow-auto max-h-[70vh]">
-        <table class="min-w-full text-sm border border-gray-300 bg-white shadow">
+        <table class="min-w-full text-sm border border-gray-300 bg-white shadow" id="detailsTable">
           <thead class="bg-gray-100 text-left">
-            <tr>${headers.map(h => `<th class="border px-2 py-1">${h}</th>`).join('')}</tr>
+            <tr><th class="border px-2 py-1">STT</th>${headerRow.map(h => `<th class="border px-2 py-1">${h}</th>`).join('')}</tr>
           </thead>
           <tbody>
-            ${rows.map(row => `
-              <tr>${row.map(cell => `<td class="border px-2 py-1">${cell}</td>`).join('')}</tr>
-            `).join('')}
+            ${rows.map((row, idx) => {
+              return `<tr>
+                <td class="border px-2 py-1">${idx + 1}</td>
+                ${selectedIndexes.map(i => `<td class="border px-2 py-1">${row[i]}</td>`).join('')}
+              </tr>`;
+            }).join('')}
           </tbody>
         </table>
       </div>
     `;
 
     detailsContainer.innerHTML = html;
+
+    // 🔍 Bắt sự kiện tìm kiếm
+    document.getElementById('detailsSearchBox').addEventListener('input', function () {
+      const keyword = this.value.toLowerCase();
+      const table = document.getElementById('detailsTable');
+      const rows = table.querySelectorAll('tbody tr');
+
+      rows.forEach(row => {
+        const text = row.innerText.toLowerCase();
+        const match = keyword.split(' ').every(word => text.includes(word));
+        row.style.display = match ? '' : 'none';
+      });
+    });
+
   } catch (err) {
     console.error('DETAILS LOAD ERROR:', err);
     detailsContainer.innerHTML = `<div class="text-red-500 text-center py-4">Lỗi tải dữ liệu</div>`;
   }
 }
+
 
 
 // -----------------------------------
