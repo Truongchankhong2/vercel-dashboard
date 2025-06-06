@@ -317,15 +317,11 @@ async function loadDetailsClient(machine) {
 
     const [headers, ...rows] = data;
 
-    // Các cột cần hiển thị
     const selectedColumns = [
       'PRO ODER', 'Brand code', '#MOLDED', 'Total Qty', 'STATUS', 'PU',
       'LAMINATION MACHINE (PLAN)', 'LAMINATION MACHINE (REALTIME)', 'Check'
     ];
     const selectedIndexes = selectedColumns.map(col => headers.indexOf(col));
-    const headerRow = selectedColumns;
-
-    // Cột có thể tìm kiếm
     const searchableOptions = [
       'PRO ODER', 'Brand code', '#MOLDED', 'PU',
       'LAMINATION MACHINE (PLAN)', 'LAMINATION MACHINE (REALTIME)'
@@ -337,12 +333,13 @@ async function loadDetailsClient(machine) {
         <button onclick="hideDetails()" class="text-blue-600 underline">Quay lại</button>
       </div>
 
-      <div class="flex gap-2 mb-3">
+      <div class="flex flex-wrap gap-2 items-center mb-3">
         <select id="detailsColumnSelect" class="border px-2 py-1 rounded">
           ${searchableOptions.map(opt => `<option value="${opt}">${opt}</option>`).join('')}
         </select>
-        <input id="detailsSearchInput" type="text" placeholder="Nhập từ khóa..." class="border px-2 py-1 flex-1 rounded">
+        <input id="detailsSearchInput" type="text" placeholder="Nhập từ khóa…" class="border px-2 py-1 rounded w-1/3">
         <button id="detailsSearchBtn" class="bg-blue-600 text-white px-4 py-1 rounded">Tìm kiếm</button>
+        <button id="detailsResetBtn" class="bg-gray-400 text-white px-4 py-1 rounded">Xóa</button>
       </div>
 
       <div class="overflow-auto max-h-[70vh]">
@@ -350,14 +347,20 @@ async function loadDetailsClient(machine) {
           <thead class="bg-gray-100 text-left">
             <tr>
               <th class="border px-2 py-1">STT</th>
-              ${headerRow.map(h => `<th class="border px-2 py-1">${h}</th>`).join('')}
+              ${selectedColumns.map(h => {
+                const isMachineCol = h.includes('MACHINE');
+                return `<th class="border px-2 py-1 ${isMachineCol ? 'max-w-[120px] truncate' : ''}">${h}</th>`;
+              }).join('')}
             </tr>
           </thead>
           <tbody>
             ${rows.map((row, idx) => {
               return `<tr>
                 <td class="border px-2 py-1">${idx + 1}</td>
-                ${selectedIndexes.map(i => `<td class="border px-2 py-1">${row[i]}</td>`).join('')}
+                ${selectedIndexes.map(i => {
+                  const isMachineCol = headers[i].includes('MACHINE');
+                  return `<td class="border px-2 py-1 ${isMachineCol ? 'max-w-[120px] truncate' : ''}">${row[i]}</td>`;
+                }).join('')}
               </tr>`;
             }).join('')}
           </tbody>
@@ -367,29 +370,36 @@ async function loadDetailsClient(machine) {
 
     detailsContainer.innerHTML = html;
 
-    // Tìm kiếm khi nhấn nút
-    document.getElementById('detailsSearchBtn').addEventListener('click', () => {
-  const keyword = document.getElementById('detailsSearchInput').value.trim().toLowerCase();
-  const column = document.getElementById('detailsColumnSelect').value;
+    const input = document.getElementById('detailsSearchInput');
+    const select = document.getElementById('detailsColumnSelect');
+    const searchBtn = document.getElementById('detailsSearchBtn');
+    const resetBtn = document.getElementById('detailsResetBtn');
+    const table = document.getElementById('detailsTable');
+    const tbody = table.querySelector('tbody');
 
-  const colIndex = selectedColumns.indexOf(column); // 🟢 Sửa điểm này
+    searchBtn.addEventListener('click', () => {
+      const keyword = input.value.trim().toLowerCase();
+      const column = select.value;
+      const colIndex = selectedColumns.indexOf(column);
 
-  const table = document.getElementById('detailsTable');
-  const rows = table.querySelectorAll('tbody tr');
+      tbody.querySelectorAll('tr').forEach(row => {
+        const cell = row.querySelectorAll('td')[colIndex + 1]; // +1 vì STT
+        const text = cell?.textContent.toLowerCase() || '';
+        row.style.display = text.includes(keyword) ? '' : 'none';
+      });
+    });
 
-  rows.forEach(row => {
-    const cell = row.querySelectorAll('td')[colIndex + 1]; // +1 vì có STT
-    const text = cell?.textContent.toLowerCase() || '';
-    row.style.display = text.includes(keyword) ? '' : 'none';
-  });
-});
-
+    resetBtn.addEventListener('click', () => {
+      input.value = '';
+      tbody.querySelectorAll('tr').forEach(row => row.style.display = '');
+    });
 
   } catch (err) {
     console.error('DETAILS LOAD ERROR:', err);
     detailsContainer.innerHTML = `<div class="text-red-500 text-center py-4">Lỗi tải dữ liệu</div>`;
   }
 }
+
 
 
 
