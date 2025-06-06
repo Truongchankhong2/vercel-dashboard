@@ -326,61 +326,59 @@ async function loadDetailsClient(machine) {
     const headerRow = selectedColumns;
 
     // Cột có thể tìm kiếm
-    const searchableOptions = [
-      'PRO ODER', 'Brand Code', '#MOLDED', 'PU',
-      'LAMINATION MACHINE (PLAN)', 'LAMINATION MACHINE (REALTIME)'
-    ];
+const searchableOptions = [
+  'PRO ODER', 'Brand Code', '#MOLDED', 'PU',
+  'LAMINATION MACHINE (PLAN)', 'LAMINATION MACHINE (REALTIME)'
+];
 
-    let html = `
-      <div class="flex justify-between items-center mb-2">
-        <h2 class="text-xl font-bold">Chi tiết máy: ${machine}</h2>
-        <button onclick="hideDetails()" class="text-blue-600 underline">Quay lại</button>
-      </div>
-
-      <div class="mb-3 space-y-2">
-  <select id="detailsColumnSelect" class="w-full border px-2 py-1 rounded">
-    ${searchableOptions.map(opt => `<option value="${opt}">${opt}</option>`).join('')}
-  </select>
-
-  <input id="detailsSearchInput" type="text" placeholder="Nhập từ khóa..." class="w-1/3 border px-2 py-1 rounded">
-
-  <div class="flex gap-2">
-    <button id="detailsSearchBtn" class="bg-blue-600 text-white px-4 py-1 rounded flex-1">Tìm kiếm</button>
-    <button id="detailsClearBtn" class="bg-gray-400 text-white px-4 py-1 rounded">Xóa</button>
+let html = `
+  <div class="flex justify-between items-center mb-2">
+    <h2 class="text-xl font-bold">Chi tiết máy: ${machine}</h2>
+    <button onclick="hideDetails()" class="text-blue-600 underline">Quay lại</button>
   </div>
-</div>
 
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
+    <select id="detailsColumnSelect" class="w-full border px-2 py-1 rounded col-span-1 sm:col-span-3">
+      ${searchableOptions.map(opt => `<option value="${opt}">${opt}</option>`).join('')}
+    </select>
 
-      <div class="overflow-auto max-h-[70vh]">
-        <table class="min-w-full text-sm border border-gray-300 bg-white shadow" id="detailsTable">
-          <thead class="bg-gray-100 text-left">
-            <tr>
-              <th class="border px-2 py-1">STT</th>
-              ${headerRow.map(h => {
-  const isMachineCol = h.includes('MACHINE');
-  return `<th class="border px-2 py-1 ${isMachineCol ? 'max-w-[150px] truncate' : ''}">${h}</th>`;
-}).join('')}
+    <input id="detailsSearchInput" type="text" placeholder="Nhập từ khóa..." class="border px-2 py-1 rounded w-full col-span-2 sm:col-span-2">
 
-            </tr>
-          </thead>
-          <tbody>
-            ${rows.map((row, idx) => {
-              return `<tr>
-                <td class="border px-2 py-1">${idx + 1}</td>
-                ${selectedIndexes.map((i, j) => {
-  const val = row[i] ?? '';
-  const isMachineCol = selectedColumns[j].includes('MACHINE');
-  return `<td class="border px-2 py-1 ${isMachineCol ? 'max-w-[150px] truncate' : ''}">${val}</td>`;
-}).join('')}
+    <div class="flex gap-2 col-span-1 sm:col-span-1">
+      <button id="detailsSearchBtn" class="bg-blue-600 text-white px-4 py-1 rounded w-full">Tìm</button>
+      <button id="detailsClearBtn" class="bg-gray-400 text-white px-4 py-1 rounded w-full">Xóa</button>
+    </div>
+  </div>
 
-              </tr>`;
+  <div class="overflow-auto max-h-[70vh]">
+    <table class="min-w-full text-sm border border-gray-300 bg-white shadow" id="detailsTable">
+      <thead class="bg-gray-100 text-left">
+        <tr>
+          <th class="border px-2 py-1">STT</th>
+          ${headerRow.map(h => {
+            const isMachineCol = h.includes('MACHINE');
+            return `<th class="border px-2 py-1 ${isMachineCol ? 'max-w-[150px] truncate' : ''}">${h}</th>`;
+          }).join('')}
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map((row, idx) => {
+          return `<tr>
+            <td class="border px-2 py-1">${idx + 1}</td>
+            ${selectedIndexes.map((i, j) => {
+              const val = row[i] ?? '';
+              const isMachineCol = selectedColumns[j].includes('MACHINE');
+              return `<td class="border px-2 py-1 ${isMachineCol ? 'max-w-[150px] truncate' : ''}">${val}</td>`;
             }).join('')}
-          </tbody>
-        </table>
-      </div>
-    `;
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+  </div>
+`;
 
-    detailsContainer.innerHTML = html;
+detailsContainer.innerHTML = html;
+
 
     // Tìm kiếm khi nhấn nút
     document.getElementById('detailsSearchBtn').addEventListener('click', () => {
