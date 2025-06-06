@@ -307,14 +307,20 @@ async function loadDetailsClient(machine) {
   detailsContainer.innerHTML = '<div class="text-center py-4">Loading chi tiết…</div>';
 
   try {
-    const res = await fetch(`/api/details?machine=${encodeURIComponent(machine)}`);
+    const res = await fetch(`/api/details?machine=${encodeURIComponent(machine)}`, {
+      cache: 'no-store'
+    });
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
     const data = await res.json();
 
     if (!Array.isArray(data) || data.length === 0) {
-      detailsContainer.innerHTML = `<div class="text-center py-4 text-red-500">Lỗi tải dữ liệu</div>`;
+      detailsContainer.innerHTML = `<div class="text-center py-4 text-red-500">Không có dữ liệu</div>`;
       return;
     }
 
+   
     const [headers, ...rows] = data;
 
     // Các cột cần hiển thị
