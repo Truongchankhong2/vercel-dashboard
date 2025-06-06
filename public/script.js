@@ -350,7 +350,8 @@ let html = `
     </div>
   </div>
 
-  <div class="overflow-auto max-h-[70vh]">
+  <div class="overflow-x-auto overflow-y-auto max-h-[70vh] whitespace-nowrap">
+
     <table class="min-w-full text-sm border border-gray-300 bg-white shadow" id="detailsTable">
       <thead class="bg-gray-100 text-left">
         <tr>
