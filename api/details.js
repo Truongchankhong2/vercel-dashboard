@@ -9,12 +9,12 @@ export default async function handler(req, res) {
 
     const { machine } = req.query;
     const machineKey = 'LAMINATION MACHINE (PLAN)';
-const filtered = data
-  .filter(row =>
-    (row[machineKey] || '').toString().trim().toUpperCase() === machine.toString().trim().toUpperCase()
-  )
-  .map(row => Object.values(row));
 
+    const filtered = data
+      .filter(row =>
+        (row[machineKey] || '').toString().trim().toUpperCase() === machine.toString().trim().toUpperCase()
+      )
+      .map(row => Object.values(row));
 
     if (filtered.length === 0) {
       return res.status(200).json([]);

@@ -311,12 +311,13 @@ async function loadDetailsClient(machine) {
     const data = await res.json();
 
     if (!Array.isArray(data) || data.length === 0) {
-      detailsContainer.innerHTML = `<div class="text-center py-4">Không có dữ liệu cho máy ${machine}</div>`;
+      detailsContainer.innerHTML = `<div class="text-center py-4 text-red-500">Lỗi tải dữ liệu</div>`;
       return;
     }
 
     const [headers, ...rows] = data;
 
+    // Các cột cần hiển thị
     const selectedColumns = [
       'PRO ODER', 'Brand code', '#MOLDED', 'Total Qty', 'STATUS', 'PU',
       'LAMINATION MACHINE (PLAN)', 'LAMINATION MACHINE (REALTIME)', 'Check'
@@ -337,9 +338,9 @@ async function loadDetailsClient(machine) {
         <select id="detailsColumnSelect" class="border px-2 py-1 rounded">
           ${searchableOptions.map(opt => `<option value="${opt}">${opt}</option>`).join('')}
         </select>
-        <input id="detailsSearchInput" type="text" placeholder="Nhập từ khóa…" class="border px-2 py-1 rounded w-1/3">
+        <input id="detailsSearchInput" type="text" placeholder="Nhập từ khóa..." class="border px-2 py-1 rounded w-1/3">
         <button id="detailsSearchBtn" class="bg-blue-600 text-white px-4 py-1 rounded">Tìm kiếm</button>
-        <button id="detailsResetBtn" class="bg-gray-400 text-white px-4 py-1 rounded">Xóa</button>
+        <button id="detailsResetBtn" class="bg-gray-500 text-white px-4 py-1 rounded">Xóa</button>
       </div>
 
       <div class="overflow-auto max-h-[70vh]">
@@ -348,8 +349,8 @@ async function loadDetailsClient(machine) {
             <tr>
               <th class="border px-2 py-1">STT</th>
               ${selectedColumns.map(h => {
-                const isMachineCol = h.includes('MACHINE');
-                return `<th class="border px-2 py-1 ${isMachineCol ? 'max-w-[120px] truncate' : ''}">${h}</th>`;
+                const narrow = h.includes('MACHINE') ? 'max-w-[150px] truncate' : '';
+                return `<th class="border px-2 py-1 ${narrow}">${h}</th>`;
               }).join('')}
             </tr>
           </thead>
@@ -358,8 +359,8 @@ async function loadDetailsClient(machine) {
               return `<tr>
                 <td class="border px-2 py-1">${idx + 1}</td>
                 ${selectedIndexes.map(i => {
-                  const isMachineCol = headers[i].includes('MACHINE');
-                  return `<td class="border px-2 py-1 ${isMachineCol ? 'max-w-[120px] truncate' : ''}">${row[i]}</td>`;
+                  const narrow = headers[i].includes('MACHINE') ? 'max-w-[150px] truncate' : '';
+                  return `<td class="border px-2 py-1 ${narrow}">${row[i] ?? ''}</td>`;
                 }).join('')}
               </tr>`;
             }).join('')}
@@ -370,27 +371,28 @@ async function loadDetailsClient(machine) {
 
     detailsContainer.innerHTML = html;
 
-    const input = document.getElementById('detailsSearchInput');
-    const select = document.getElementById('detailsColumnSelect');
+    // --- Event tìm kiếm ---
     const searchBtn = document.getElementById('detailsSearchBtn');
     const resetBtn = document.getElementById('detailsResetBtn');
+    const searchInput = document.getElementById('detailsSearchInput');
+    const searchColumn = document.getElementById('detailsColumnSelect');
     const table = document.getElementById('detailsTable');
     const tbody = table.querySelector('tbody');
 
     searchBtn.addEventListener('click', () => {
-      const keyword = input.value.trim().toLowerCase();
-      const column = select.value;
+      const keyword = searchInput.value.trim().toLowerCase();
+      const column = searchColumn.value;
       const colIndex = selectedColumns.indexOf(column);
 
       tbody.querySelectorAll('tr').forEach(row => {
         const cell = row.querySelectorAll('td')[colIndex + 1]; // +1 vì STT
-        const text = cell?.textContent.toLowerCase() || '';
+        const text = (cell?.textContent || '').toLowerCase();
         row.style.display = text.includes(keyword) ? '' : 'none';
       });
     });
 
     resetBtn.addEventListener('click', () => {
-      input.value = '';
+      searchInput.value = '';
       tbody.querySelectorAll('tr').forEach(row => row.style.display = '');
     });
 
@@ -399,6 +401,7 @@ async function loadDetailsClient(machine) {
     detailsContainer.innerHTML = `<div class="text-red-500 text-center py-4">Lỗi tải dữ liệu</div>`;
   }
 }
+
 
 
 
