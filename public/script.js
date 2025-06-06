@@ -225,6 +225,7 @@ async function searchProgress() {
 
   try {
     const query = progressSearchBox.value.trim().toUpperCase();
+    const selectedField = document.getElementById('progressColumnSelect').value;
     if (!query) {
       container.innerHTML = '<div class="text-center py-4">Vui lòng nhập mã RPRO để tìm.</div>';
       return;
@@ -261,8 +262,8 @@ async function searchProgress() {
 
     // Lọc các hàng có PRO ODER chứa query:
     const filtered = data.filter(row => {
-      const code = (row['PRO ODER'] || '').toString().toUpperCase();
-      return code.includes(query);
+      const val = (row[selectedField] || '').toString().toUpperCase();
+      return val.includes(query);
     });
 
     if (filtered.length === 0) {
