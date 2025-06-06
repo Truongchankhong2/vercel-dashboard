@@ -363,22 +363,56 @@ let html = `
         </tr>
       </thead>
       <tbody>
-        ${rows.map((row, idx) => {
-          return `<tr>
-            <td class="border px-2 py-1">${idx + 1}</td>
-            ${selectedIndexes.map((i, j) => {
-              const val = row[i] ?? '';
-              const isMachineCol = selectedColumns[j].includes('MACHINE');
-              return `<td class="border px-2 py-1 ${isMachineCol ? 'max-w-[150px] truncate' : ''}">${val}</td>`;
-            }).join('')}
-          </tr>`;
-        }).join('')}
-      </tbody>
+</tbody>
+
     </table>
   </div>
 `;
 
 detailsContainer.innerHTML = html;
+// 1. Tạo danh sách chi tiết từ rows
+const details = rows.map((row, idx) => {
+  const obj = { STT: idx + 1 };
+  selectedColumns.forEach((key, j) => {
+    obj[key] = row[selectedIndexes[j]] ?? '';
+  });
+  return obj;
+});
+
+// 2. Sắp xếp theo PU → Brand Code → PRO ODER
+details.sort((a, b) => {
+  const keys = ['PU', 'Brand Code', 'PRO ODER'];
+  for (let k of keys) {
+    const va = (a[k] || '').toString().toUpperCase();
+    const vb = (b[k] || '').toString().toUpperCase();
+    if (va < vb) return -1;
+    if (va > vb) return 1;
+  }
+  return 0;
+});
+
+// 3. Tô màu theo PU
+const colorPalette = ['#fef08a', '#a7f3d0', '#fca5a5', '#c4b5fd', '#f9a8d4', '#fde68a', '#bfdbfe', '#6ee7b7'];
+const puGroups = [...new Set(details.map(d => d['PU']))];
+const puColorMap = {};
+puGroups.forEach((pu, idx) => {
+  puColorMap[pu] = colorPalette[idx % colorPalette.length];
+});
+
+// 4. Render lại tbody
+let tbodyHTML = '';
+details.forEach(d => {
+  const bgColor = puColorMap[d['PU']] || '';
+  tbodyHTML += `<tr style="background-color:${bgColor}">`;
+  tbodyHTML += `<td class="border px-2 py-1">${d.STT}</td>`;
+  selectedColumns.forEach(key => {
+    const isMachineCol = key.includes('MACHINE');
+    tbodyHTML += `<td class="border px-2 py-1 ${isMachineCol ? 'max-w-[150px] truncate' : ''}">${d[key]}</td>`;
+  });
+  tbodyHTML += `</tr>`;
+});
+
+document.querySelector('#detailsTable tbody').innerHTML = tbodyHTML;
 
 
     // Tìm kiếm khi nhấn nút
