@@ -374,22 +374,118 @@ async function loadDetailsClient(machine) {
 
   const colIndex = selectedColumns.indexOf(column); // 🟢 Sửa điểm này
 
-  const table = document.getElementById('detailsTable');
-  const rows = table.querySelectorAll('tbody tr');
+  const table = dasync function loadDetailsClient(machine) {
+  currentView = 'detail';
+  currentMachine = machine;
 
-  rows.forEach(row => {
-    const cell = row.querySelectorAll('td')[colIndex + 1]; // +1 vì có STT
-    const text = cell?.textContent.toLowerCase() || '';
-    row.style.display = text.includes(keyword) ? '' : 'none';
-  });
-});
+  detailsContainer.classList.remove('hidden');
+  detailsContainer.innerHTML = '<div class="text-center py-4">Loading chi tiết…</div>';
 
+  try {
+    const res = await fetch(`/api/details?machine=${encodeURIComponent(machine)}`);
+    const data = await res.json();
+
+    if (!Array.isArray(data) || data.length === 0) {
+      detailsContainer.innerHTML = `<div class="text-center py-4">Không có dữ liệu cho máy ${machine}</div>`;
+      return;
+    }
+
+    const [headers, ...rows] = data;
+
+    // Các cột cần hiển thị
+    const selectedColumns = [
+      'PRO ODER', 'Brand code', '#MOLDED', 'Total Qty', 'STATUS', 'PU',
+      'LAMINATION MACHINE (PLAN)', 'LAMINATION MACHINE (REALTIME)', 'Check'
+    ];
+    const selectedIndexes = selectedColumns.map(col => headers.indexOf(col));
+    const headerRow = selectedColumns;
+
+    // Cột có thể tìm kiếm
+    const searchableOptions = [
+      'PRO ODER', 'Brand code', '#MOLDED', 'PU',
+      'LAMINATION MACHINE (PLAN)', 'LAMINATION MACHINE (REALTIME)'
+    ];
+
+    // Lưu toàn bộ bảng để khôi phục khi reset
+    let originalRows = rows;
+
+    let html = `
+      <div class="flex justify-between items-center mb-2">
+        <h2 class="text-xl font-bold">Chi tiết máy: ${machine}</h2>
+        <button onclick="hideDetails()" class="text-blue-600 underline">Quay lại</button>
+      </div>
+
+      <div class="flex flex-wrap gap-2 items-center mb-3">
+        <select id="detailsColumnSelect" class="border px-2 py-1 rounded">
+          ${searchableOptions.map(opt => `<option value="${opt}">${opt}</option>`).join('')}
+        </select>
+        <input id="detailsSearchInput" type="text" placeholder="Nhập từ khóa..." class="border px-2 py-1 rounded w-1/3">
+        <button id="detailsSearchBtn" class="bg-blue-600 text-white px-4 py-1 rounded">Tìm kiếm</button>
+        <button id="detailsResetBtn" class="bg-gray-400 text-white px-4 py-1 rounded">Xóa</button>
+      </div>
+
+      <div class="overflow-auto max-h-[70vh]">
+        <table class="min-w-full text-sm border border-gray-300 bg-white shadow" id="detailsTable">
+          <thead class="bg-gray-100 text-left">
+            <tr>
+              <th class="border px-2 py-1">STT</th>
+              ${headerRow.map(h => {
+                const isMachineCol = h.includes('MACHINE');
+                return `<th class="border px-2 py-1 ${isMachineCol ? 'max-w-[150px] truncate' : ''}">${h}</th>`;
+              }).join('')}
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map((row, idx) => {
+              return `<tr>
+                <td class="border px-2 py-1">${idx + 1}</td>
+                ${selectedIndexes.map(i => {
+                  const isMachineCol = headers[i].includes('MACHINE');
+                  return `<td class="border px-2 py-1 ${isMachineCol ? 'max-w-[150px] truncate' : ''}">${row[i]}</td>`;
+                }).join('')}
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    detailsContainer.innerHTML = html;
+
+    const searchBtn = document.getElementById('detailsSearchBtn');
+    const resetBtn = document.getElementById('detailsResetBtn');
+    const input = document.getElementById('detailsSearchInput');
+    const select = document.getElementById('detailsColumnSelect');
+    const table = document.getElementById('detailsTable');
+    const tbody = table.querySelector('tbody');
+
+    // Tìm kiếm
+    searchBtn.addEventListener('click', () => {
+      const keyword = input.value.trim().toLowerCase();
+      const column = select.value;
+      const colIndex = selectedColumns.indexOf(column);
+
+      const rows = tbody.querySelectorAll('tr');
+      rows.forEach(row => {
+        const cell = row.querySelectorAll('td')[colIndex + 1];
+        const text = cell?.textContent.toLowerCase() || '';
+        row.style.display = text.includes(keyword) ? '' : 'none';
+      });
+    });
+
+    // Reset bảng
+    resetBtn.addEventListener('click', () => {
+      input.value = '';
+      const rows = tbody.querySelectorAll('tr');
+      rows.forEach(row => row.style.display = '');
+    });
 
   } catch (err) {
     console.error('DETAILS LOAD ERROR:', err);
     detailsContainer.innerHTML = `<div class="text-red-500 text-center py-4">Lỗi tải dữ liệu</div>`;
   }
 }
+
 
 
 
