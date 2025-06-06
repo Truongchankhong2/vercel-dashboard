@@ -369,18 +369,21 @@ async function loadDetailsClient(machine) {
 
     // Tìm kiếm khi nhấn nút
     document.getElementById('detailsSearchBtn').addEventListener('click', () => {
-      const keyword = document.getElementById('detailsSearchInput').value.trim().toLowerCase();
-      const column = document.getElementById('detailsColumnSelect').value;
-      const colIndex = headers.indexOf(column);
-      const table = document.getElementById('detailsTable');
-      const rows = table.querySelectorAll('tbody tr');
+  const keyword = document.getElementById('detailsSearchInput').value.trim().toLowerCase();
+  const column = document.getElementById('detailsColumnSelect').value;
 
-      rows.forEach(row => {
-        const cell = row.querySelectorAll('td')[colIndex + 1]; // +1 do có cột STT
-        const text = cell?.textContent.toLowerCase() || '';
-        row.style.display = text.includes(keyword) ? '' : 'none';
-      });
-    });
+  const colIndex = selectedColumns.indexOf(column); // 🟢 Sửa điểm này
+
+  const table = document.getElementById('detailsTable');
+  const rows = table.querySelectorAll('tbody tr');
+
+  rows.forEach(row => {
+    const cell = row.querySelectorAll('td')[colIndex + 1]; // +1 vì có STT
+    const text = cell?.textContent.toLowerCase() || '';
+    row.style.display = text.includes(keyword) ? '' : 'none';
+  });
+});
+
 
   } catch (err) {
     console.error('DETAILS LOAD ERROR:', err);
