@@ -231,38 +231,20 @@ async function searchProgress() {
       return;
     }
 
-    // Lấy JSON:
     const res = await fetch('/powerapp.json', { cache: 'no-store' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
-    // Các key cần lấy từ JSON:
     const fields = [
-      'PRO ODER',
-      'Brand Code',
-      '#MOLDED',
-      'Total Qty',
-      'STATUS',
-      'RECEIVED (MATERIAL)',
-      'RECEIVED (LOGO)',
-      'Laminating (Pro)',
-      'Prefitting (Pro)',
-      'Slipting (Pro)',
-      'Bào (Pro)',
-      'Molding Pro (IN)',
-      'Molding Pro',
-      'IN lean Line (Pro)',
-      'IN lean Line (MACHINE)',
-      'Out lean Line (Pro)',
-      'PACKING PRO',
-      'Packing date',
-      'Finish date',
-      'STORED'
+      'PRO ODER', 'Brand Code', '#MOLDED', 'Total Qty', 'STATUS',
+      'RECEIVED (MATERIAL)', 'RECEIVED (LOGO)', 'Laminating (Pro)', 'Prefitting (Pro)',
+      'Slipting (Pro)', 'Bào (Pro)', 'Molding Pro (IN)', 'Molding Pro',
+      'IN lean Line (Pro)', 'IN lean Line (MACHINE)', 'Out lean Line (Pro)',
+      'PACKING PRO', 'Packing date', 'Finish date', 'STORED'
     ];
 
-    // Lọc các hàng có PRO ODER chứa query:
-    const filtered = data.filter(row => {
-      const val = (row[selectedField] || '').toString().toUpperCase();
+    const filtered = data.filter(item => {
+      const val = (item[selectedField] || '').toString().toUpperCase();
       return val.includes(query);
     });
 
@@ -271,41 +253,35 @@ async function searchProgress() {
       return;
     }
 
-    // Xây bảng với cột STT + các field trên:
+    // Các cột cần định dạng ngày
+    const dateFields = [
+      'RECEIVED (MATERIAL)', 'RECEIVED (LOGO)', 'Laminating (Pro)', 'Prefitting (Pro)',
+      'Slipting (Pro)', 'Bào (Pro)', 'Molding Pro (IN)', 'Molding Pro',
+      'IN lean Line (Pro)', 'IN lean Line (MACHINE)', 'Out lean Line (Pro)',
+      'PACKING PRO', 'Packing date', 'Finish date', 'STORED'
+    ];
+
+    // Tạo bảng HTML
     let html = '<table class="min-w-full table-auto border-collapse">';
-    // Header:
     html += '<thead class="bg-gray-50"><tr>';
     html += `<th class="border px-2 py-1 text-left text-sm font-medium text-gray-700">STT</th>`;
     fields.forEach(key => {
-  let cell = row[key] ?? '';
-
-  // 🟡 Danh sách các cột cần định dạng ngày
-  const dateFields = [
-    'RECEIVED (MATERIAL)', 'RECEIVED (LOGO)', 'Laminating (Pro)',
-    'Prefitting (Pro)', 'Slipting (Pro)', 'Bào (Pro)',
-    'Molding Pro (IN)', 'Molding Pro', 'IN lean Line (Pro)',
-    'IN lean Line (MACHINE)', 'Out lean Line (Pro)',
-    'PACKING PRO', 'Packing date', 'Finish date', 'STORED'
-  ];
-
-  // 🟢 Nếu là cột ngày và giá trị hợp lệ, thì định dạng lại
-  if (dateFields.includes(key) && !isNaN(Date.parse(cell))) {
-    const d = new Date(cell);
-    const formatted = `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`;
-    cell = formatted;
-  }
-
-  html += `<td class="border px-2 py-1 text-sm text-gray-800">${cell}</td>`;
-});
-
+      html += `<th class="border px-2 py-1 text-left text-sm font-medium text-gray-700">${key}</th>`;
+    });
     html += '</tr></thead><tbody>';
 
-    // Dữ liệu:
-    filtered.forEach((row, idx) => {
+    // Dữ liệu
+    filtered.forEach((item, idx) => {
       html += '<tr class="hover:bg-gray-100">';
       html += `<td class="border px-2 py-1 text-sm text-gray-800">${idx + 1}</td>`;
       fields.forEach(key => {
-        const cell = row[key] ?? '';
+        let cell = item[key] ?? '';
+
+        if (dateFields.includes(key) && !isNaN(Date.parse(cell))) {
+          const d = new Date(cell);
+          cell = `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`;
+        }
+
         html += `<td class="border px-2 py-1 text-sm text-gray-800">${cell}</td>`;
       });
       html += '</tr>';
@@ -321,6 +297,7 @@ async function searchProgress() {
     setBtnLoading(progressBtnSearch, false);
   }
 }
+
 
 function clearProgressSearch() {
   progressSearchBox.value = '';
