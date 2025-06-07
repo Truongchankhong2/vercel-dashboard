@@ -277,8 +277,27 @@ async function searchProgress() {
     html += '<thead class="bg-gray-50"><tr>';
     html += `<th class="border px-2 py-1 text-left text-sm font-medium text-gray-700">STT</th>`;
     fields.forEach(key => {
-      html += `<th class="border px-2 py-1 text-left text-sm font-medium text-gray-700">${key}</th>`;
-    });
+  let cell = row[key] ?? '';
+
+  // 🟡 Danh sách các cột cần định dạng ngày
+  const dateFields = [
+    'RECEIVED (MATERIAL)', 'RECEIVED (LOGO)', 'Laminating (Pro)',
+    'Prefitting (Pro)', 'Slipting (Pro)', 'Bào (Pro)',
+    'Molding Pro (IN)', 'Molding Pro', 'IN lean Line (Pro)',
+    'IN lean Line (MACHINE)', 'Out lean Line (Pro)',
+    'PACKING PRO', 'Packing date', 'Finish date', 'STORED'
+  ];
+
+  // 🟢 Nếu là cột ngày và giá trị hợp lệ, thì định dạng lại
+  if (dateFields.includes(key) && !isNaN(Date.parse(cell))) {
+    const d = new Date(cell);
+    const formatted = `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`;
+    cell = formatted;
+  }
+
+  html += `<td class="border px-2 py-1 text-sm text-gray-800">${cell}</td>`;
+});
+
     html += '</tr></thead><tbody>';
 
     // Dữ liệu:
