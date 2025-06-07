@@ -242,7 +242,7 @@ async function searchProgress() {
       'Brand Code',
       '#MOLDED',
       'Total Qty',
-      'Status',
+      'STATUS',
       'RECEIVED (MATERIAL)',
       'RECEIVED (LOGO)',
       'Laminating (Pro)',
