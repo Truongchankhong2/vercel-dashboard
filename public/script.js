@@ -240,7 +240,7 @@ async function searchProgress() {
     const fields = [
       'PRO ODER',
       'Brand Code',
-      'Product Type',
+      '#MOLDED',
       'Total Qty',
       'Status',
       'RECEIVED (MATERIAL)',
