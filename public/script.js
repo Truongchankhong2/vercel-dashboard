@@ -346,21 +346,26 @@ async function loadDetailsClient(machine) {
     const selectedIndexes = selectedColumns.map(col => headers.indexOf(col));
 
     const details = rows
-  .map(row => {
-    const obj = {};
-    selectedColumns.forEach((key, j) => {
-      obj[key] = row[selectedIndexes[j]] ?? '';
+    .map(row => {
+      const obj = {};
+      selectedColumns.forEach((key, j) => {
+        obj[key] = row[selectedIndexes[j]] ?? '';
+      });
+      obj['STATUS'] = row[headers.indexOf('STATUS')] ?? '';
+      return obj;
+    })
+    .filter(d => {
+      const selectedType = selectedSection.toUpperCase();
+      
+      // 🟢 Khi người dùng chưa chọn cột tìm kiếm → lọc theo STATUS
+      const columnDropdown = document.getElementById('detailsColumnSelect');
+      const isInitialLoad = !columnDropdown || columnDropdown.value === '';
+
+      return isInitialLoad
+        ? (d['STATUS'] || '').toUpperCase() === `2.${selectedType}`
+        : true; // ✅ nếu user đã chọn bất kỳ dropdown nào → không lọc STATUS
     });
-    obj['STATUS'] = row[headers.indexOf('STATUS')] ?? ''; // 👈 thêm STATUS cho lọc sau
-    return obj;
-  })
-  .filter(d => {
-    const selectedType = selectedSection.toUpperCase(); // ví dụ: LAMINATION
-    const currentFilter = document.getElementById('detailsColumnSelect')?.value || 'ALL';
-    // Nếu chọn Tất cả thì không lọc STATUS, còn lại thì lọc
-    if (currentFilter === 'ALL') return true;
-    return (d['STATUS'] || '').toUpperCase() === `2.${selectedType}`;
-  });
+
 
 
 
