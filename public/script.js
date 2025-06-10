@@ -321,6 +321,23 @@ function clearProgressSearch() {
 // -----------------------------------
 // --- DETAILS VIEW (nếu cần) ---
 // -----------------------------------
+function shouldDisplayRow(d, isInitial) {
+  const selectedField = document.getElementById('detailsColumnSelect')?.value || '';
+  const keyword = document.getElementById('detailsSearchInput')?.value.trim().toUpperCase() || '';
+
+  // Khi click máy lần đầu (không có thao tác tìm kiếm), chỉ lọc theo STATUS
+  if (isInitial) {
+    return (d['STATUS'] || '').toUpperCase() === `2.${selectedSection.toUpperCase()}`;
+  }
+
+  // Nếu chọn "Tất cả" hoặc không nhập gì → hiển thị tất cả
+  if (selectedField === 'ALL' || keyword === '') {
+    return true;
+  }
+
+  // Nếu chọn cột cụ thể và có từ khóa → lọc theo từ khóa
+  return (d[selectedField] || '').toString().toUpperCase().includes(keyword);
+}
 async function loadDetailsClient(machine, isInitial = false) {
   currentView = 'detail';
   currentMachine = machine;
@@ -346,29 +363,41 @@ async function loadDetailsClient(machine, isInitial = false) {
     const selectedIndexes = selectedColumns.map(col => headers.indexOf(col));
 
     const details = rows
-    .map(row => {
-      const obj = {};
-      selectedColumns.forEach((key, j) => {
-        obj[key] = row[selectedIndexes[j]] ?? '';
-      });
-      obj['STATUS'] = row[headers.indexOf('STATUS')] ?? '';
-      return obj;
-    })
-    .filter(d => {
-      const selectedField = document.getElementById('detailsColumnSelect')?.value || '';
-      const keyword = document.getElementById('detailsSearchInput')?.value.trim().toUpperCase() || '';
-
-      // Nếu là khởi tạo mặc định (click máy) → lọc STATUS
-      if (isInitial) {
-        return (d['STATUS'] || '').toUpperCase() === `2.${selectedSection.toUpperCase()}`;
-      }
-
-      // Nếu chọn "Tất cả" hoặc KHÔNG có từ khóa → bỏ lọc (hiện toàn bộ)
-      if (selectedField === 'ALL' || keyword === '') return true;
-
-      // Nếu có từ khóa + chọn cột → lọc theo từ khóa (bỏ STATUS)
-      return (d[selectedField] || '').toString().toUpperCase().includes(keyword);
+  .map(row => {
+    const obj = {};
+    selectedColumns.forEach((key, j) => {
+      obj[key] = row[selectedIndexes[j]] ?? '';
     });
+    obj['STATUS'] = row[headers.indexOf('STATUS')] ?? '';
+    return obj;
+  })
+  .filter(d => {
+    const selectedField = document.getElementById('detailsColumnSelect')?.value || '';
+    const keyword = document.getElementById('detailsSearchInput')?.value.trim().toUpperCase() || '';
+
+    if (isInitial) {
+      // Khi lần đầu click vào máy → lọc theo STATUS
+      return (d['STATUS'] || '').toUpperCase() === `2.${selectedSection.toUpperCase()}`;
+    }
+
+    if (selectedField === 'ALL') {
+      // Chọn "Tất cả": lọc theo tất cả các cột hiển thị
+      return selectedColumns.some(col => {
+        const val = (d[col] || '').toString().toUpperCase();
+        return val.includes(keyword);
+      });
+    }
+
+    if (keyword === '') {
+      // Không nhập từ khóa → hiện toàn bộ
+      return true;
+    }
+
+    // Tìm kiếm theo cột cụ thể
+    const val = (d[selectedField] || '').toString().toUpperCase();
+    return val.includes(keyword);
+  });
+
 
 
 
