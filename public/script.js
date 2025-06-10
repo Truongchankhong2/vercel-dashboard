@@ -34,6 +34,10 @@ let currentMachine = null;
 function updateTimestamp() {
   lastUpdatedEl.textContent = 'Cập nhật: ' + new Date().toLocaleTimeString();
 }
+function hideSectionBar() {
+  const sectionBarEl = document.getElementById('section-bar');
+  if (sectionBarEl) sectionBarEl.innerHTML = '';
+}
 
 function setBtnLoading(btn, isLoading) {
   btn.disabled = isLoading;
@@ -84,7 +88,7 @@ async function loadRaw() {
   hideProgressSearchBar();
   searchResult.innerHTML = '';
   container.innerHTML = '';
-
+  hideSectionBar();
   try {
     const res = await fetch('/api/data', { cache: 'no-store' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -212,7 +216,7 @@ async function loadProgress() {
   container.innerHTML = '';
   searchResult.innerHTML = '';
   updateTimestamp();
-
+  hideSectionBar();
   // Hiện thanh tìm kiếm Progress:
   showProgressSearchBar();
 }
