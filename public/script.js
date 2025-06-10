@@ -340,18 +340,21 @@ async function loadDetailsClient(machine) {
     const [headers, ...rows] = data;
 
     const selectedColumns = [
-      'PRO ODER', 'Brand Code', '#MOLDED', 'Total Qty', 'STATUS', 'PU',
+      'PRO ODER', 'Brand Code', '#MOLDED', 'Total Qty', 'PU',
       'LAMINATION MACHINE (PLAN)', 'LAMINATION MACHINE (REALTIME)', 'Check'
     ];
     const selectedIndexes = selectedColumns.map(col => headers.indexOf(col));
 
-    const details = rows.map(row => {
-      const obj = {};
-      selectedColumns.forEach((key, j) => {
-        obj[key] = row[selectedIndexes[j]] ?? '';
-      });
-      return obj;
-    });
+    const details = rows
+      .map(row => {
+        const obj = {};
+        selectedColumns.forEach((key, j) => {
+          obj[key] = row[selectedIndexes[j]] ?? '';
+        });
+        return obj;
+    })
+    .filter(d => (d['STATUS'] || '').toUpperCase() === '2.LAMINATION'); // 🔍 lọc theo STATUS
+
 
     // Sắp xếp + STT
     details.sort((a, b) => {
