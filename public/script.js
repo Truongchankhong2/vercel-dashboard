@@ -346,14 +346,22 @@ async function loadDetailsClient(machine) {
     const selectedIndexes = selectedColumns.map(col => headers.indexOf(col));
 
     const details = rows
-      .map(row => {
-        const obj = {};
-        selectedColumns.forEach((key, j) => {
-          obj[key] = row[selectedIndexes[j]] ?? '';
-        });
-        return obj;
-    })
-    .filter(d => (d['STATUS'] || '').toUpperCase() === '2.LAMINATION'); // 🔍 lọc theo STATUS
+  .map(row => {
+    const obj = {};
+    selectedColumns.forEach((key, j) => {
+      obj[key] = row[selectedIndexes[j]] ?? '';
+    });
+    obj['STATUS'] = row[headers.indexOf('STATUS')] ?? ''; // 👈 thêm STATUS cho lọc sau
+    return obj;
+  })
+  .filter(d => {
+    const selectedType = selectedSection.toUpperCase(); // ví dụ: LAMINATION
+    const currentFilter = document.getElementById('detailsColumnSelect')?.value || 'ALL';
+    // Nếu chọn Tất cả thì không lọc STATUS, còn lại thì lọc
+    if (currentFilter === 'ALL') return true;
+    return (d['STATUS'] || '').toUpperCase() === `2.${selectedType}`;
+  });
+
 
 
     // Sắp xếp + STT
@@ -407,9 +415,11 @@ async function loadDetailsClient(machine) {
 
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
         <select id="detailsColumnSelect" class="w-full border px-2 py-1 rounded col-span-3">
+          <option value="ALL">Tất cả (All)</option>
           ${['PRO ODER', 'Brand Code', '#MOLDED', 'PU', 'LAMINATION MACHINE (PLAN)', 'LAMINATION MACHINE (REALTIME)']
             .map(opt => `<option value="${opt}">${opt}</option>`).join('')}
         </select>
+
         <input id="detailsSearchInput" type="text" placeholder="Nhập từ khóa..." class="border px-2 py-1 rounded w-full col-span-2">
         <div class="flex gap-2 col-span-1">
           <button id="detailsSearchBtn" class="bg-blue-600 text-white px-4 py-1 rounded w-full">Tìm</button>
