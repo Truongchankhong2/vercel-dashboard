@@ -519,7 +519,6 @@ async function renderSummarySection() {
     const data = await res.json();
     const keyword = `2.${selectedSection.toUpperCase()}`;
 
-    // ✅ Gom theo máy, nhưng chỉ tính đơn có STATUS đúng
     const machines = {};
     data.forEach(row => {
       const status = (row['STATUS'] || '').toUpperCase();
@@ -540,7 +539,7 @@ async function renderSummarySection() {
 
     let totalAll = 0;
     let html = `
-      <table class="min-w-full divide-y divide-gray-200">
+      <table class="min-w-full divide-y divide-gray-200" id="summary-table">
         <thead class="bg-gray-50">
           <tr>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Machine</th>
@@ -553,7 +552,7 @@ async function renderSummarySection() {
     entries.forEach(([machine, total]) => {
       totalAll += total;
       html += `
-        <tr>
+        <tr data-machine="${machine}" class="hover:bg-gray-100 cursor-pointer">
           <td class="px-6 py-4 text-sm text-gray-900">${machine}</td>
           <td class="px-6 py-4 text-sm text-right text-gray-900">${formatNumber(total)}</td>
         </tr>
@@ -570,6 +569,15 @@ async function renderSummarySection() {
     `;
 
     container.innerHTML = html;
+
+    // ✅ Gắn sự kiện click từng dòng
+    document.querySelectorAll('#summary-table tbody tr[data-machine]').forEach(tr => {
+      tr.addEventListener('click', () => {
+        const machine = tr.dataset.machine;
+        loadDetailsClient(machine);
+      });
+    });
+
   } catch (err) {
     console.error('[renderSummarySection error]', err);
     container.innerHTML = `<div class="text-red-500 py-4">Lỗi tải dữ liệu section</div>`;
@@ -577,6 +585,7 @@ async function renderSummarySection() {
     setBtnLoading(btnSummary, false);
   }
 }
+
 
 
 // ✅ Gọi đúng thứ tự
