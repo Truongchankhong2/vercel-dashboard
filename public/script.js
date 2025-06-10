@@ -76,53 +76,7 @@ function showProgressSearchBar() {
   progressSearchBar.classList.remove('hidden');
 }
 
-// -----------------------------------
-// --- RAW VIEW (dữ liệu gốc) ---
-// -----------------------------------
-async function loadRaw() {
-  currentView = 'raw';
-  currentMachine = null;
-  setBtnLoading(btnRaw, true);
 
-  hideDetails();
-  hideProgressSearchBar();
-  searchResult.innerHTML = '';
-  container.innerHTML = '';
-  hideSectionBar();
-  try {
-    const res = await fetch('/api/data', { cache: 'no-store' });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const rows = await res.json();
-
-    if (!Array.isArray(rows) || rows.length === 0) {
-      container.innerHTML = '<div class="text-center py-4">Không có dữ liệu raw</div>';
-    } else {
-      let html = '<table class="min-w-full table-auto border-collapse">';
-      html += '<thead class="bg-gray-50"><tr>';
-      // Header: Cột 1, 2, ….
-      rows[0].forEach((_, i) => {
-        html += `<th class="border px-2 py-1 text-left text-sm font-medium text-gray-700">Cột ${i + 1}</th>`;
-      });
-      html += '</tr></thead><tbody>';
-      // Mỗi hàng
-      rows.slice(1).forEach(r => {
-        html += '<tr class="hover:bg-gray-100">';
-        r.forEach(cell => {
-          html += `<td class="border px-2 py-1 text-sm text-gray-800">${cell ?? ''}</td>`;
-        });
-        html += '</tr>';
-      });
-      html += '</tbody></table>';
-      container.innerHTML = html;
-    }
-    updateTimestamp();
-  } catch (e) {
-    console.error('[ERROR] loadRaw failed:', e);
-    container.innerHTML = '<div class="text-center text-red-500 py-4">Lỗi tải dữ liệu raw</div>';
-  } finally {
-    setBtnLoading(btnRaw, false);
-  }
-}
 
 // -----------------------------------
 // --- SUMMARY VIEW (tổng hợp máy) ---
@@ -499,7 +453,7 @@ btnRefresh.addEventListener('click', () => {
 });
 
 // --- KHỞI TẠO: Đăng ký sự kiện ---
-btnRaw.addEventListener('click', loadRaw);
+
 btnSummary.addEventListener('click', loadSummary);
 btnProgress.addEventListener('click', loadProgress);
 
