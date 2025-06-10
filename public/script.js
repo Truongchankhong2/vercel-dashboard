@@ -465,14 +465,11 @@ async function loadDetailsClient(machine) {
 
 // -----------------------------------
 // --- REFRESH BUTTON (F5) ---
-// -----------------------------------
 btnRefresh.addEventListener('click', () => {
   window.location.reload();
 });
 
-// -----------------------------------
 // --- KHỞI TẠO: Đăng ký sự kiện ---
-// -----------------------------------
 btnRaw.addEventListener('click', loadRaw);
 btnSummary.addEventListener('click', loadSummary);
 btnProgress.addEventListener('click', loadProgress);
@@ -480,5 +477,117 @@ btnProgress.addEventListener('click', loadProgress);
 progressBtnSearch.addEventListener('click', searchProgress);
 progressBtnClear.addEventListener('click', clearProgressSearch);
 
-// Khi load trang, mặc định cho Summary:
-loadSummary();
+// Biến toàn cục
+let selectedSection = 'LAMINATION';
+const sectionButtons = [
+  { id: 'btn-lamination', label: 'Lamination', value: 'LAMINATION' }
+];
+
+// Hàm vẽ nút
+function renderSectionButtons() {
+  const sectionBar = document.getElementById('section-bar');
+  sectionBar.innerHTML = '';
+  sectionButtons.forEach(({ id, label, value }) => {
+    const btn = document.createElement('button');
+    btn.id = id;
+    btn.textContent = label;
+    btn.className = `px-4 py-1 rounded font-medium text-white ${
+      selectedSection === value ? 'bg-green-600' : 'bg-gray-400'
+    }`;
+    btn.onclick = () => {
+      selectedSection = value;
+      renderSectionButtons();
+      renderSummarySection();
+    };
+    sectionBar.appendChild(btn);
+  });
+}
+
+// ✅ Đặt HÀM renderSummarySection trước khi gọi loadSummary
+async function renderSummarySection() {
+  setBtnLoading(btnSummary, true);
+  hideDetails();
+  hideProgressSearchBar();
+  container.innerHTML = '';
+
+  const sectionBarEl = document.getElementById('section-bar');
+  if (sectionBarEl) sectionBarEl.innerHTML = '';
+  renderSectionButtons();
+
+  try {
+    const res = await fetch('/api/summary', { cache: 'no-store' });
+    const data = await res.json();
+    const keyword = `2.${selectedSection.toUpperCase()}`;
+
+    const filtered = data.filter(row => row.status?.toUpperCase().includes(keyword));
+
+    const machines = {};
+    filtered.forEach(row => {
+      const machine = row.machine || '<blank>';
+      machines[machine] = (machines[machine] || 0) + row.total;
+    });
+
+    const entries = Object.entries(machines).sort((a, b) => {
+      const aNum = parseInt((a[0].match(/\d+/) || ['0'])[0], 10);
+      const bNum = parseInt((b[0].match(/\d+/) || ['0'])[0], 10);
+      return aNum - bNum;
+    });
+
+    let totalAll = 0;
+    let html = `
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Machine</th>
+            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Quantity Pair Plan</th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+    `;
+    entries.forEach(([machine, total]) => {
+      totalAll += total;
+      html += `
+        <tr>
+          <td class="px-6 py-4 text-sm text-gray-900">${machine}</td>
+          <td class="px-6 py-4 text-sm text-right text-gray-900">${formatNumber(total)}</td>
+        </tr>
+      `;
+    });
+    html += `
+        <tr class="font-bold bg-gray-100">
+          <td class="px-6 py-3 text-sm text-gray-700 text-right">Tổng cộng:</td>
+          <td class="px-6 py-3 text-sm text-gray-900 text-right">${formatNumber(totalAll)}</td>
+        </tr>
+        </tbody>
+      </table>
+    `;
+    container.innerHTML = html;
+  } catch (err) {
+    container.innerHTML = `<div class="text-red-500 py-4">Lỗi tải dữ liệu section</div>`;
+  } finally {
+    setBtnLoading(btnSummary, false);
+  }
+}
+
+// ✅ Gọi đúng thứ tự
+function loadSummary() {
+  selectedSection = 'LAMINATION';
+  renderSectionButtons();
+  renderSummarySection();
+}
+
+// ==== Đăng ký sự kiện ====
+btnRaw.addEventListener('click', loadRaw);
+btnSummary.addEventListener('click', loadSummary);
+btnProgress.addEventListener('click', loadProgress);
+btnRefresh.addEventListener('click', () => window.location.reload());
+
+progressBtnSearch.addEventListener('click', searchProgress);
+progressBtnClear.addEventListener('click', clearProgressSearch);
+
+// ✅ Gọi khi load trang xong
+window.addEventListener('DOMContentLoaded', () => {
+  loadSummary();
+});
+
+
