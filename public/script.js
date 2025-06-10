@@ -338,7 +338,7 @@ function shouldDisplayRow(d, isInitial) {
   // Nếu chọn cột cụ thể và có từ khóa → lọc theo từ khóa
   return (d[selectedField] || '').toString().toUpperCase().includes(keyword);
 }
-async function loadDetailsClient(machine, isInitial = false) {
+async function loadDetailsClient(machine, isInitial = false, rememberedField = 'ALL', rememberedKeyword = '') {
   currentView = 'detail';
   currentMachine = machine;
 
@@ -363,46 +363,28 @@ async function loadDetailsClient(machine, isInitial = false) {
     const selectedIndexes = selectedColumns.map(col => headers.indexOf(col));
 
     const details = rows
-  .map(row => {
-    const obj = {};
-    selectedColumns.forEach((key, j) => {
-      obj[key] = row[selectedIndexes[j]] ?? '';
-    });
-    obj['STATUS'] = row[headers.indexOf('STATUS')] ?? '';
-    return obj;
-  })
-  .filter(d => {
-    const selectedField = document.getElementById('detailsColumnSelect')?.value || '';
-    const keyword = document.getElementById('detailsSearchInput')?.value.trim().toUpperCase() || '';
+      .map(row => {
+        const obj = {};
+        selectedColumns.forEach((key, j) => {
+          obj[key] = row[selectedIndexes[j]] ?? '';
+        });
+        obj['STATUS'] = row[headers.indexOf('STATUS')] ?? '';
+        return obj;
+      })
+      .filter(d => {
+        const selectedField = rememberedField;
+        const keyword = rememberedKeyword.trim().toUpperCase();
 
-    if (isInitial) {
-      // ✅ Khi vừa click máy → chỉ lọc theo STATUS
-      return (d['STATUS'] || '').toUpperCase() === `2.${selectedSection.toUpperCase()}`;
-    }
+        if (isInitial) {
+          return (d['STATUS'] || '').toUpperCase() === `2.${selectedSection.toUpperCase()}`;
+        }
 
-    if (keyword === '') {
-      // ✅ Khi KHÔNG nhập từ khóa → hiển thị toàn bộ, bỏ lọc STATUS
-      return true;
-    }
+        if (selectedField === 'ALL' || keyword === '') return true;
 
-    if (selectedField === 'ALL') {
-      // ✅ Khi chọn "Tất cả": tìm theo tất cả cột
-      return selectedColumns.some(col => {
-        const val = (d[col] || '').toString().toUpperCase();
-        return val.includes(keyword);
+        return (d[selectedField] || '').toString().toUpperCase().includes(keyword);
       });
-    }
 
-    // ✅ Khi có từ khóa + chọn cột cụ thể → tìm theo đúng cột đó
-    const val = (d[selectedField] || '').toString().toUpperCase();
-    return val.includes(keyword);
-  });
-
-
-
-
-
-    // Sắp xếp + STT
+    // Sắp xếp
     details.sort((a, b) => {
       const keys = ['PU', 'Brand Code', 'PRO ODER'];
       for (let k of keys) {
@@ -415,11 +397,9 @@ async function loadDetailsClient(machine, isInitial = false) {
     });
     details.forEach((d, i) => d.STT = i + 1);
 
-    // Tính % Verify
     const trueCount = details.filter(d => d['Check'] === 'true' || d['Check'] === true).length;
     const percentVerify = ((trueCount / details.length) * 100).toFixed(1);
 
-    // Tô màu PU
     const colorPalette = ['#fef08a', '#a7f3d0', '#fca5a5', '#c4b5fd', '#f9a8d4', '#fde68a', '#bfdbfe', '#6ee7b7'];
     const puGroups = [...new Set(details.map(d => d['PU']))];
     const puColorMap = {};
@@ -427,7 +407,6 @@ async function loadDetailsClient(machine, isInitial = false) {
       puColorMap[pu] = colorPalette[idx % colorPalette.length];
     });
 
-    // Tạo tbody HTML
     let tbodyHTML = '';
     details.forEach(d => {
       const bgColor = puColorMap[d['PU']] || '';
@@ -440,7 +419,6 @@ async function loadDetailsClient(machine, isInitial = false) {
       tbodyHTML += `</tr>`;
     });
 
-    // Tạo giao diện bảng
     const html = `
       <div class="flex justify-between items-center mb-2">
         <h2 class="text-xl font-bold">Chi tiết máy: ${machine}</h2>
@@ -453,12 +431,12 @@ async function loadDetailsClient(machine, isInitial = false) {
 
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
         <select id="detailsColumnSelect" class="w-full border px-2 py-1 rounded col-span-3">
-          <option value="ALL">Tất cả (All)</option>
+          <option value="ALL"${rememberedField === 'ALL' ? ' selected' : ''}>Tất cả (All)</option>
           ${['PRO ODER', 'Brand Code', '#MOLDED', 'PU', 'LAMINATION MACHINE (PLAN)', 'LAMINATION MACHINE (REALTIME)']
-            .map(opt => `<option value="${opt}">${opt}</option>`).join('')}
+            .map(opt => `<option value="${opt}"${rememberedField === opt ? ' selected' : ''}>${opt}</option>`).join('')}
         </select>
 
-        <input id="detailsSearchInput" type="text" placeholder="Nhập từ khóa..." class="border px-2 py-1 rounded w-full col-span-2">
+        <input id="detailsSearchInput" type="text" placeholder="Nhập từ khóa..." value="${rememberedKeyword}" class="border px-2 py-1 rounded w-full col-span-2">
         <div class="flex gap-2 col-span-1">
           <button id="detailsSearchBtn" class="bg-blue-600 text-white px-4 py-1 rounded w-full">Tìm</button>
           <button id="detailsClearBtn" class="bg-gray-400 text-white px-4 py-1 rounded w-full">Xóa</button>
@@ -484,15 +462,17 @@ async function loadDetailsClient(machine, isInitial = false) {
 
     detailsContainer.innerHTML = html;
 
-    // Tìm/Xóa
+    // Nút tìm
     document.getElementById('detailsSearchBtn').addEventListener('click', () => {
-      loadDetailsClient(currentMachine, false); // ✅ Đúng: không dùng lọc theo STATUS
+      const field = document.getElementById('detailsColumnSelect').value;
+      const keyword = document.getElementById('detailsSearchInput').value.trim();
+      loadDetailsClient(currentMachine, false, field, keyword); // truyền lại giá trị đã chọn
     });
 
-
+    // Nút xóa
     document.getElementById('detailsClearBtn').addEventListener('click', () => {
       document.getElementById('detailsSearchInput').value = '';
-      document.querySelectorAll('#detailsTable tbody tr').forEach(row => row.style.display = '');
+      loadDetailsClient(currentMachine, false, rememberedField, '');
     });
 
   } catch (err) {
@@ -500,6 +480,7 @@ async function loadDetailsClient(machine, isInitial = false) {
     detailsContainer.innerHTML = `<div class="text-red-500 text-center py-4">Lỗi tải dữ liệu</div>`;
   }
 }
+
 
 
 
