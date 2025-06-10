@@ -376,27 +376,28 @@ async function loadDetailsClient(machine, isInitial = false) {
     const keyword = document.getElementById('detailsSearchInput')?.value.trim().toUpperCase() || '';
 
     if (isInitial) {
-      // Khi lần đầu click vào máy → lọc theo STATUS
+      // ✅ Khi vừa click máy → chỉ lọc theo STATUS
       return (d['STATUS'] || '').toUpperCase() === `2.${selectedSection.toUpperCase()}`;
     }
 
+    if (keyword === '') {
+      // ✅ Khi KHÔNG nhập từ khóa → hiển thị toàn bộ, bỏ lọc STATUS
+      return true;
+    }
+
     if (selectedField === 'ALL') {
-      // Chọn "Tất cả": lọc theo tất cả các cột hiển thị
+      // ✅ Khi chọn "Tất cả": tìm theo tất cả cột
       return selectedColumns.some(col => {
         const val = (d[col] || '').toString().toUpperCase();
         return val.includes(keyword);
       });
     }
 
-    if (keyword === '') {
-      // Không nhập từ khóa → hiện toàn bộ
-      return true;
-    }
-
-    // Tìm kiếm theo cột cụ thể
+    // ✅ Khi có từ khóa + chọn cột cụ thể → tìm theo đúng cột đó
     const val = (d[selectedField] || '').toString().toUpperCase();
     return val.includes(keyword);
   });
+
 
 
 
