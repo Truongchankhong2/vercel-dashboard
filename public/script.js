@@ -445,7 +445,7 @@ async function loadDetailsClient(machine, isInitial = false, rememberedField = '
 
       <div class="overflow-x-auto overflow-y-auto max-h-[70vh] whitespace-nowrap">
         <table class="min-w-full text-sm border border-gray-300 bg-white shadow" id="detailsTable">
-          <thead class="bg-gray-100 text-left">
+          <thead class="bg-gray-100 text-left sticky top-0 z-10">
             <tr>
               <th class="border px-2 py-1">STT</th>
               ${selectedColumns.map(h => {
