@@ -590,11 +590,16 @@ async function renderSummarySection() {
     container.innerHTML = html;
 
     // ✅ Gắn sự kiện click từng dòng
-    document.querySelectorAll('#summary-table tbody tr[data-machine]').forEach(tr => {
-      tr.addEventListener('click', () => {
-        currentMachine = machine;
-        loadDetailsClient(machine, true); // <- truyền true để lọc theo STATUS
-      });
+    document.querySelectorAll('tbody tr').forEach(tr => {
+      const firstCell = tr.querySelector('td');
+      const machineName = firstCell?.textContent?.trim();
+      if (machineName && machineName !== 'Tổng cộng:') {
+        tr.classList.add('hover:bg-gray-100', 'cursor-pointer');
+        tr.addEventListener('click', () => {
+          currentMachine = machineName;
+          loadDetailsClient(machineName, true);  // ✅ gọi đúng
+        });
+      }
     });
 
   } catch (err) {
