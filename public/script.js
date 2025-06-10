@@ -321,7 +321,7 @@ function clearProgressSearch() {
 // -----------------------------------
 // --- DETAILS VIEW (nếu cần) ---
 // -----------------------------------
-async function loadDetailsClient(machine) {
+async function loadDetailsClient(machine, isInitial = false) {
   currentView = 'detail';
   currentMachine = machine;
 
@@ -461,16 +461,9 @@ async function loadDetailsClient(machine) {
 
     // Tìm/Xóa
     document.getElementById('detailsSearchBtn').addEventListener('click', () => {
-      const keyword = document.getElementById('detailsSearchInput').value.trim().toLowerCase();
-      const column = document.getElementById('detailsColumnSelect').value;
-      const colIndex = selectedColumns.indexOf(column);
-      const rows = document.querySelectorAll('#detailsTable tbody tr');
-      rows.forEach(row => {
-        const cell = row.querySelectorAll('td')[colIndex + 1];
-        const text = cell?.textContent.toLowerCase() || '';
-        row.style.display = text.includes(keyword) ? '' : 'none';
-      });
-    });
+  loadDetailsClient(currentMachine, false); // ✅ Gọi lại toàn bộ dữ liệu, không lọc STATUS
+});
+
 
     document.getElementById('detailsClearBtn').addEventListener('click', () => {
       document.getElementById('detailsSearchInput').value = '';
@@ -599,8 +592,8 @@ async function renderSummarySection() {
     // ✅ Gắn sự kiện click từng dòng
     document.querySelectorAll('#summary-table tbody tr[data-machine]').forEach(tr => {
       tr.addEventListener('click', () => {
-        const machine = tr.dataset.machine;
-        loadDetailsClient(machine);
+        currentMachine = machine;
+        loadDetailsClient(machine, true); // <- truyền true để lọc theo STATUS
       });
     });
 
