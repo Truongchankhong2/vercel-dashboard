@@ -355,26 +355,21 @@ async function loadDetailsClient(machine, isInitial = false) {
       return obj;
     })
     .filter(d => {
-      const selectedType = selectedSection.toUpperCase();
-      const columnEl = document.getElementById('detailsColumnSelect');
-      const searchEl = document.getElementById('detailsSearchBox');
+      const selectedField = document.getElementById('detailsColumnSelect')?.value || '';
+      const keyword = document.getElementById('detailsSearchInput')?.value.trim().toUpperCase() || '';
 
-      const selectedField = columnEl?.value || '';
-      const searchValue = searchEl?.value?.trim().toUpperCase() || '';
-
+      // Nếu là khởi tạo mặc định (click máy) → lọc STATUS
       if (isInitial) {
-        // 👉 Khi click máy, lọc theo STATUS
-        return (d['STATUS'] || '').toUpperCase() === `2.${selectedType}`;
+        return (d['STATUS'] || '').toUpperCase() === `2.${selectedSection.toUpperCase()}`;
       }
 
-      // 👉 Khi bấm nút tìm
-      if (selectedField === 'ALL') return true;
-      if (!selectedField) return true; // chưa chọn cột gì → vẫn bỏ lọc
+      // Nếu chọn "Tất cả" hoặc KHÔNG có từ khóa → bỏ lọc (hiện toàn bộ)
+      if (selectedField === 'ALL' || keyword === '') return true;
 
-      // Nếu có từ khóa tìm kiếm thì lọc theo field đó
-      const fieldValue = (d[selectedField] || '').toUpperCase();
-      return fieldValue.includes(searchValue);
+      // Nếu có từ khóa + chọn cột → lọc theo từ khóa (bỏ STATUS)
+      return (d[selectedField] || '').toString().toUpperCase().includes(keyword);
     });
+
 
 
     // Sắp xếp + STT
