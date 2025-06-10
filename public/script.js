@@ -486,8 +486,8 @@ async function loadDetailsClient(machine, isInitial = false) {
 
     // Tìm/Xóa
     document.getElementById('detailsSearchBtn').addEventListener('click', () => {
-  loadDetailsClient(currentMachine, false); // ✅ Gọi lại toàn bộ dữ liệu, không lọc STATUS
-});
+      loadDetailsClient(currentMachine, false); // ✅ Đúng: không dùng lọc theo STATUS
+    });
 
 
     document.getElementById('detailsClearBtn').addEventListener('click', () => {
