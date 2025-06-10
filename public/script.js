@@ -515,16 +515,21 @@ async function renderSummarySection() {
   renderSectionButtons();
 
   try {
-    const res = await fetch('/api/summary', { cache: 'no-store' });
+    const res = await fetch('/powerapp.json', { cache: 'no-store' });
     const data = await res.json();
     const keyword = `2.${selectedSection.toUpperCase()}`;
 
-    const filtered = data.filter(row => row.status?.toUpperCase().includes(keyword));
-
+    // ✅ Gom theo máy, nhưng chỉ tính đơn có STATUS đúng
     const machines = {};
-    filtered.forEach(row => {
-      const machine = row.machine || '<blank>';
-      machines[machine] = (machines[machine] || 0) + row.total;
+    data.forEach(row => {
+      const status = (row['STATUS'] || '').toUpperCase();
+      const machine = row['LAMINATION MACHINE (PLAN)'];
+      const qty = Number(row['Total Qty']) || 0;
+
+      if (status.includes(keyword) && machine) {
+        if (!machines[machine]) machines[machine] = 0;
+        machines[machine] += qty;
+      }
     });
 
     const entries = Object.entries(machines).sort((a, b) => {
@@ -544,6 +549,7 @@ async function renderSummarySection() {
         </thead>
         <tbody class="bg-white divide-y divide-gray-200">
     `;
+
     entries.forEach(([machine, total]) => {
       totalAll += total;
       html += `
@@ -553,6 +559,7 @@ async function renderSummarySection() {
         </tr>
       `;
     });
+
     html += `
         <tr class="font-bold bg-gray-100">
           <td class="px-6 py-3 text-sm text-gray-700 text-right">Tổng cộng:</td>
@@ -561,13 +568,16 @@ async function renderSummarySection() {
         </tbody>
       </table>
     `;
+
     container.innerHTML = html;
   } catch (err) {
+    console.error('[renderSummarySection error]', err);
     container.innerHTML = `<div class="text-red-500 py-4">Lỗi tải dữ liệu section</div>`;
   } finally {
     setBtnLoading(btnSummary, false);
   }
 }
+
 
 // ✅ Gọi đúng thứ tự
 function loadSummary() {
