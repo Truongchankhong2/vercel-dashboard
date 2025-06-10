@@ -356,17 +356,25 @@ async function loadDetailsClient(machine) {
     })
     .filter(d => {
       const selectedType = selectedSection.toUpperCase();
-      
-      // 🟢 Khi người dùng chưa chọn cột tìm kiếm → lọc theo STATUS
-      const columnDropdown = document.getElementById('detailsColumnSelect');
-      const isInitialLoad = !columnDropdown || columnDropdown.value === '';
+      const columnEl = document.getElementById('detailsColumnSelect');
+      const searchEl = document.getElementById('detailsSearchBox');
 
-      return isInitialLoad
-        ? (d['STATUS'] || '').toUpperCase() === `2.${selectedType}`
-        : true; // ✅ nếu user đã chọn bất kỳ dropdown nào → không lọc STATUS
+      const selectedField = columnEl?.value || '';
+      const searchValue = searchEl?.value?.trim().toUpperCase() || '';
+
+      if (isInitial) {
+        // 👉 Khi click máy, lọc theo STATUS
+        return (d['STATUS'] || '').toUpperCase() === `2.${selectedType}`;
+      }
+
+      // 👉 Khi bấm nút tìm
+      if (selectedField === 'ALL') return true;
+      if (!selectedField) return true; // chưa chọn cột gì → vẫn bỏ lọc
+
+      // Nếu có từ khóa tìm kiếm thì lọc theo field đó
+      const fieldValue = (d[selectedField] || '').toUpperCase();
+      return fieldValue.includes(searchValue);
     });
-
-
 
 
     // Sắp xếp + STT
