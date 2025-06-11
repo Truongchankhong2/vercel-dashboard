@@ -22,6 +22,7 @@ const headerDisplayMap = {
   'Total Qty': 'PO Quantity (Pairs)',
   'STATUS': 'Status-Trạng thái đơn',
   'PU': 'PU Type',
+  'FB DESCRIPTION': 'Tên Vải',
   'LAMINATION MACHINE (PLAN)': 'Plan Machine',
   'LAMINATION MACHINE (REALTIME)': 'Actual Machine',
   'Check': 'Verify'
@@ -195,7 +196,7 @@ async function searchProgress() {
     const data = await res.json();
 
     const fields = [
-      'PRO ODER', 'Brand Code', '#MOLDED', 'BOM', ,'PU','FB', 'Total Qty', 'STATUS',
+      'PRO ODER', 'Brand Code', '#MOLDED', 'BOM' ,'PU','FB', 'Total Qty', 'STATUS',
       'RECEIVED (MATERIAL)', 'RECEIVED (LOGO)', 'Laminating (Pro)',
       'Prefitting (Pro)', 'Slipting (Pro)', 'Bào (Pro)',
       'Molding Pro (IN)', 'Molding Pro', 'IN lean Line (Pro)',
@@ -315,7 +316,7 @@ async function loadDetailsClient(machine, isInitial = false, rememberedField = '
     const [headers, ...rows] = data;
 
     const selectedColumns = [
-      'PRO ODER', 'Brand Code', '#MOLDED', 'Total Qty', 'STATUS', 'PU',
+      'PRO ODER', 'Brand Code', '#MOLDED', 'Total Qty', 'STATUS', 'PU', 'FB DESCRIPTION',
       'LAMINATION MACHINE (PLAN)', 'LAMINATION MACHINE (REALTIME)', 'Check'
     ];
     const selectedIndexes = selectedColumns.map(col => headers.indexOf(col));
@@ -355,7 +356,7 @@ async function loadDetailsClient(machine, isInitial = false, rememberedField = '
     });
     details.forEach((d, i) => d.STT = i + 1);
 
-    const trueCount = details.filter(d => d['Check'] === 'true' || d['Check'] === true).length;
+    const trueCount = details.filter(d => d['Check'] === 'True' || d['Check'] === true).length;
     const percentVerify = ((trueCount / details.length) * 100).toFixed(1);
 
     const colorPalette = ['#fef08a', '#a7f3d0', '#fca5a5', '#c4b5fd', '#f9a8d4', '#fde68a', '#bfdbfe', '#6ee7b7'];
@@ -371,8 +372,13 @@ async function loadDetailsClient(machine, isInitial = false, rememberedField = '
       tbodyHTML += `<tr style="background-color:${bgColor}">`;
       tbodyHTML += `<td class="border px-2 py-1">${d.STT}</td>`;
       selectedColumns.forEach(key => {
-        const isMachineCol = key.includes('MACHINE');
-        tbodyHTML += `<td class="border px-2 py-1 ${isMachineCol ? 'max-w-[150px] truncate' : ''}">${d[key]}</td>`;
+        let cellClass = 'border px-2 py-1';
+        if (key === 'FB DESCRIPTION') {
+          cellClass += ' max-w-[180px] whitespace-normal break-words';
+        } else if (key.includes('MACHINE')) {
+          cellClass += ' max-w-[150px] truncate';
+        }
+        tbodyHTML += `<td class="${cellClass}">${d[key]}</td>`;
       });
       tbodyHTML += `</tr>`;
     });
@@ -390,7 +396,14 @@ async function loadDetailsClient(machine, isInitial = false, rememberedField = '
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
         <select id="detailsColumnSelect" class="w-full border px-2 py-1 rounded col-span-3">
           <option value="ALL"${rememberedField === 'ALL' ? ' selected' : ''}>Tất cả (All)</option>
-          ${['PRO ODER', 'Brand Code', '#MOLDED', 'PU', 'LAMINATION MACHINE (PLAN)', 'LAMINATION MACHINE (REALTIME)']
+          ${[
+            'PRO ODER',
+            'Brand Code',
+            '#MOLDED',
+            'PU',
+            'FB DESCRIPTION', // ✅ Thêm dòng này
+            'LAMINATION MACHINE (PLAN)',
+            'LAMINATION MACHINE (REALTIME)']
             .map(opt => `<option value="${opt}"${rememberedField === opt ? ' selected' : ''}>${opt}</option>`).join('')}
         </select>
 
@@ -408,6 +421,9 @@ async function loadDetailsClient(machine, isInitial = false, rememberedField = '
               <th class="border px-2 py-1">STT</th>
               ${selectedColumns.map(h => {
                 const displayName = headerDisplayMap[h] || h;
+                if (h === 'FB DESCRIPTION') {
+                  return `<th class="border px-2 py-1 max-w-[180px] whitespace-normal break-words">${displayName}</th>`;
+                }
                 const isMachineCol = h.includes('MACHINE');
                 return `<th class="border px-2 py-1 ${isMachineCol ? 'max-w-[150px] truncate' : ''}">${displayName}</th>`;
               }).join('')}
@@ -424,7 +440,7 @@ async function loadDetailsClient(machine, isInitial = false, rememberedField = '
     document.getElementById('detailsSearchBtn').addEventListener('click', () => {
       const field = document.getElementById('detailsColumnSelect').value;
       const keyword = document.getElementById('detailsSearchInput').value.trim();
-      loadDetailsClient(currentMachine, false, field, keyword); // truyền lại giá trị đã chọn
+      loadDetailsClient(currentMachine, false, field, keyword);
     });
 
     // Nút xóa
@@ -438,7 +454,6 @@ async function loadDetailsClient(machine, isInitial = false, rememberedField = '
     detailsContainer.innerHTML = `<div class="text-red-500 text-center py-4">Lỗi tải dữ liệu</div>`;
   }
 }
-
 
 
 
@@ -584,7 +599,7 @@ function loadSummary() {
 }
 
 // ==== Đăng ký sự kiện ====
-btnRaw.addEventListener('click', loadRaw);
+
 btnSummary.addEventListener('click', loadSummary);
 btnProgress.addEventListener('click', loadProgress);
 btnRefresh.addEventListener('click', () => window.location.reload());
