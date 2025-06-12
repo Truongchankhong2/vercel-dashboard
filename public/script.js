@@ -316,7 +316,7 @@ async function loadDetailsClient(machine, isInitial = false, rememberedField = '
     const [headers, ...rows] = data;
 
     const selectedColumns = [
-      'PRO ODER', 'Brand Code', '#MOLDED', 'Total Qty', 'STATUS', 'PU', 'FB DESCRIPTION',
+      'PRO ODER', 'Brand Code', '#MOLD', 'Total Qty', 'STATUS', 'PU', 'FB DESCRIPTION',
       'LAMINATION MACHINE (PLAN)', 'LAMINATION MACHINE (REALTIME)', 'Check'
     ];
     const selectedIndexes = selectedColumns.map(col => headers.indexOf(col));
