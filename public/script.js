@@ -244,11 +244,12 @@ async function searchProgress() {
 
     // Lọc dữ liệu theo: chọn 1 cột + checkbox nâng cao
     const filtered = data.filter(row => {
-      let matchBasic = true;
-      if (keyword && selectedField) {
-        const val = (row[selectedField] || '').toString().toLowerCase();
-        matchBasic = val.includes(keyword);
-      }
+      const val = (row['Delay/Urgent'] || '').toUpperCase();
+      if (type === 'DELAY') return val === 'PRODUCTION DELAY';
+      if (type === 'URGENT') return val === 'URGENT';
+      return false;
+    });
+
 
       const matchAdvanced = Object.entries(filters).every(([key, val]) => {
         const v = (row[key] || '').toString().toLowerCase();
@@ -694,7 +695,7 @@ function loadDelayUrgentData(type) {
   fetch('/powerapp.json')
     .then(res => res.json())
     .then(data => {
-      const filtered = data.filter(...)(row => {
+      const filtered = data.filter(row => {
         const val = (row['Delay/Urgent'] || '').toString().trim().toUpperCase();
         if (type === 'DELAY') return val === 'PRODUCTION DELAY';
         if (type === 'URGENT') return val === 'URGENT';
