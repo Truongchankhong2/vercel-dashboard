@@ -721,7 +721,8 @@ function loadDelayUrgentData(type) {
         </table>
       `;
 
-      tableContainer.innerHTML = html;
+      document.getElementById('table-container').innerHTML = html;
+
     });
 }
 function hideDelayUrgentButtons() {
