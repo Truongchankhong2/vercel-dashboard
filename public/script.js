@@ -8,12 +8,10 @@ const btnRaw           = document.getElementById('btn-raw');
 const btnSummary       = document.getElementById('btn-summary');
 const btnProgress      = document.getElementById('btn-progress');
 const btnRefresh       = document.getElementById('btn-refresh');
-const btnDelayUrgent = document.getElementById('btn-delay-main');
+const btnDelayUrgent = document.getElementById('btn-delay');       // nút đỏ chuyển view
+const btnDelayTab = document.getElementById('btn-delay-tab');      // nút tab "Delay"
+const btnUrgentTab = document.getElementById('btn-urgent-tab');    // nút tab "Xuất gấp"
 
-
-const delayTabs = document.getElementById('delay-tabs');
-const btnDelayTab = document.getElementById('btn-delay-tab');
-const btnUrgentTab = document.getElementById('btn-urgent-tab');
 
 // Elements cho Progress View
 const progressSearchBar = document.getElementById('progress-search-bar');
@@ -513,7 +511,7 @@ btnRefresh.addEventListener('click', () => {
 btnSummary.addEventListener('click', loadSummary);
 btnProgress.addEventListener('click', loadProgress);
 
-btnDelayUrgent.addEventListener('click', () => {
+btn-delay.addEventListener('click', () => {
   hideAllViews();
   delayTabs.classList.remove('hidden');
   loadDelayUrgentData('DELAY'); // Mặc định là Delay
