@@ -183,8 +183,9 @@ async function loadSummary() {
 // -----------------------------------
 async function loadProgress() {
   currentView = 'progress';
+  hideAllViews();
   currentMachine = null;
-
+  showProgressSearchBar();
   // Ẩn các view khác:
   hideDetails();
   container.innerHTML = '';
@@ -710,6 +711,7 @@ async function renderSummarySection() {
 
 // ✅ Gọi đúng thứ tự
 function loadSummary() {
+  hideAllViews();
   selectedSection = 'LAMINATION';
   renderSectionButtons();
   renderSummarySection();
@@ -794,6 +796,8 @@ function hideAllViews() {
   document.getElementById('basic-search-title')?.classList.add('hidden');
   document.getElementById('advanced-search-title')?.classList.add('hidden');
   document.getElementById('delay-tabs')?.classList.add('hidden');
+  document.getElementById('delay-search-bar')?.classList.add('hidden');
+  document.getElementById('delay-advanced-filter')?.classList.add('hidden');
 }
 function formatExcelDate(serial) {
   if (!serial || isNaN(serial)) return '';
