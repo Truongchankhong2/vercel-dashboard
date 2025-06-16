@@ -19,9 +19,11 @@ const progressBtnClear  = document.getElementById('progressBtnClear');
 const headerDisplayMap = {
   'PRO ODER': 'Order Code',
   'Brand Code': 'Brand',
+  '#MOLD': 'Loại hàng',
   'Total Qty': 'PO Quantity (Pairs)',
   'STATUS': 'Status-Trạng thái đơn',
-  'PU': 'PU Type',
+  'PU': 'Mã PU',
+  'FB': 'Mã Vải',
   'FB DESCRIPTION': 'Tên Vải',
   'LAMINATION MACHINE (PLAN)': 'Plan Machine',
   'LAMINATION MACHINE (REALTIME)': 'Actual Machine',
@@ -71,10 +73,16 @@ function showDetails() {
 
 function hideProgressSearchBar() {
   progressSearchBar.classList.add('hidden');
+  document.getElementById('title-simple-filter')?.classList.add('hidden');
+  document.getElementById('progress-advanced-filter')?.classList.add('hidden');
+  document.getElementById('title-advanced-filter')?.classList.add('hidden');
 }
 
 function showProgressSearchBar() {
   progressSearchBar.classList.remove('hidden');
+  document.getElementById('title-simple-filter')?.classList.remove('hidden');
+  document.getElementById('progress-advanced-filter')?.classList.remove('hidden');
+  document.getElementById('title-advanced-filter')?.classList.remove('hidden');
 }
 
 
@@ -182,15 +190,24 @@ async function searchProgress() {
   hideDetails();
   searchResult.innerHTML = '';
 
-  try {
-    const query = progressSearchBox.value.trim().toUpperCase();
-    const selectedField = document.getElementById('progressColumnSelect').value;
-    if (!query) {
-      container.innerHTML = '<div class="text-center py-4">Vui lòng nhập mã RPRO để tìm.</div>';
-      return;
-    }
+  const keyword = progressSearchBox.value.trim().toLowerCase();
+  const selectedField = document.getElementById('progressColumnSelect').value;
 
-    // Lấy dữ liệu JSON
+  // Lấy dữ liệu từ checkbox + input nâng cao
+  const inputs = document.querySelectorAll('.progress-input');
+  const checks = document.querySelectorAll('.progress-check');
+  const filters = {};
+  checks.forEach((checkbox) => {
+    if (checkbox.checked) {
+      const key = checkbox.dataset.key;
+      const input = Array.from(inputs).find(i => i.dataset.key === key);
+      if (input && input.value.trim()) {
+        filters[key] = input.value.trim().toLowerCase();
+      }
+    }
+  });
+
+  try {
     const res = await fetch('/powerapp.json', { cache: 'no-store' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
@@ -220,18 +237,28 @@ async function searchProgress() {
              `${date.getFullYear()}`;
     };
 
-    // Lọc dữ liệu theo ô được chọn
+    // Lọc dữ liệu theo: chọn 1 cột + checkbox nâng cao
     const filtered = data.filter(row => {
-      const val = (row[selectedField] || '').toString().toUpperCase();
-      return val.includes(query);
+      let matchBasic = true;
+      if (keyword && selectedField) {
+        const val = (row[selectedField] || '').toString().toLowerCase();
+        matchBasic = val.includes(keyword);
+      }
+
+      const matchAdvanced = Object.entries(filters).every(([key, val]) => {
+        const v = (row[key] || '').toString().toLowerCase();
+        return v.includes(val);
+      });
+
+      return matchBasic && matchAdvanced;
     });
 
     if (filtered.length === 0) {
-      container.innerHTML = `<div class="text-center py-4">Không tìm thấy RPRO nào chứa “${progressSearchBox.value}”.</div>`;
+      container.innerHTML = `<div class="text-center py-4 text-red-500">Không tìm thấy dữ liệu khớp.</div>`;
       return;
     }
 
-    // Xây bảng kết quả
+    // Render kết quả
     let html = '<table class="min-w-full table-auto border-collapse">';
     html += '<thead class="bg-gray-50"><tr>';
     html += `<th class="border px-2 py-1 text-left text-sm font-medium text-gray-700">STT</th>`;
@@ -262,13 +289,14 @@ async function searchProgress() {
     container.innerHTML = html;
     updateTimestamp();
 
-  } catch (e) {
-    console.error('[ERROR] searchProgress failed:', e);
-    container.innerHTML = '<div class="text-center text-red-500 py-4">Lỗi tìm tiến trình RPRO</div>';
+  } catch (err) {
+    console.error('[searchProgress error]', err);
+    container.innerHTML = `<div class="text-red-500 text-center py-4">Lỗi tìm tiến trình</div>`;
   } finally {
     setBtnLoading(progressBtnSearch, false);
   }
 }
+
 
 
 
@@ -316,7 +344,7 @@ async function loadDetailsClient(machine, isInitial = false, rememberedField = '
     const [headers, ...rows] = data;
 
     const selectedColumns = [
-      'PRO ODER', 'Brand Code', '#MOLD', 'Total Qty', 'STATUS', 'PU', 'FB DESCRIPTION',
+      'PRO ODER', 'Brand Code', '#MOLD', 'Total Qty', 'STATUS', 'PU', 'FB', 'FB DESCRIPTION',
       'LAMINATION MACHINE (PLAN)', 'LAMINATION MACHINE (REALTIME)', 'Check'
     ];
     const selectedIndexes = selectedColumns.map(col => headers.indexOf(col));
@@ -345,7 +373,7 @@ async function loadDetailsClient(machine, isInitial = false, rememberedField = '
 
     // Sắp xếp
     details.sort((a, b) => {
-      const keys = ['PU', 'Brand Code', 'PRO ODER'];
+      const keys = ['PU', 'FB', 'PRO ODER'];
       for (let k of keys) {
         const va = (a[k] || '').toString().toUpperCase();
         const vb = (b[k] || '').toString().toUpperCase();
@@ -354,21 +382,27 @@ async function loadDetailsClient(machine, isInitial = false, rememberedField = '
       }
       return 0;
     });
+
     details.forEach((d, i) => d.STT = i + 1);
 
     const trueCount = details.filter(d => d['Check'] === 'True' || d['Check'] === true).length;
     const percentVerify = ((trueCount / details.length) * 100).toFixed(1);
 
     const colorPalette = ['#fef08a', '#a7f3d0', '#fca5a5', '#c4b5fd', '#f9a8d4', '#fde68a', '#bfdbfe', '#6ee7b7'];
-    const puGroups = [...new Set(details.map(d => d['PU']))];
-    const puColorMap = {};
-    puGroups.forEach((pu, idx) => {
-      puColorMap[pu] = colorPalette[idx % colorPalette.length];
+    
+
+    const groupKeys = [...new Set(details.map(d => `${d['PU']}_${d['FB']}`))];
+    const puFbColorMap = {};
+    groupKeys.forEach((key, idx) => {
+      puFbColorMap[key] = colorPalette[idx % colorPalette.length];
     });
+
 
     let tbodyHTML = '';
     details.forEach(d => {
-      const bgColor = puColorMap[d['PU']] || '';
+      const groupKey = `${d['PU']}_${d['FB']}`;
+      const bgColor = puFbColorMap[groupKey] || '';
+
       tbodyHTML += `<tr style="background-color:${bgColor}">`;
       tbodyHTML += `<td class="border px-2 py-1">${d.STT}</td>`;
       selectedColumns.forEach(key => {
@@ -518,14 +552,20 @@ async function renderSummarySection() {
     const keyword = `2.${selectedSection.toUpperCase()}`;
 
     const machines = {};
+    const sheets = {}; // Số tấm (DL PU)
+
     data.forEach(row => {
       const status = (row['STATUS'] || '').toUpperCase();
       const machine = row['LAMINATION MACHINE (PLAN)'];
       const qty = Number(row['Total Qty']) || 0;
+      const sheet = Number(row['DL PU']) || 0;
 
       if (status.includes(keyword) && machine) {
         if (!machines[machine]) machines[machine] = 0;
+        if (!sheets[machine]) sheets[machine] = 0;
+
         machines[machine] += qty;
+        sheets[machine] += sheet;
       }
     });
 
@@ -535,24 +575,30 @@ async function renderSummarySection() {
       return aNum - bNum;
     });
 
-    let totalAll = 0;
+    let totalAllQty = 0;
+    let totalAllSheets = 0;
     let html = `
       <table class="min-w-full divide-y divide-gray-200" id="summary-table">
         <thead class="bg-gray-50">
           <tr>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Machine</th>
             <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Quantity Pair Plan</th>
+            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Số Tấm (Sheet)</th>
           </tr>
         </thead>
         <tbody class="bg-white divide-y divide-gray-200">
     `;
 
     entries.forEach(([machine, total]) => {
-      totalAll += total;
+      const sheetTotal = sheets[machine] || 0;
+      totalAllQty += total;
+      totalAllSheets += sheetTotal;
+
       html += `
         <tr data-machine="${machine}" class="hover:bg-gray-100 cursor-pointer">
           <td class="px-6 py-4 text-sm text-gray-900">${machine}</td>
           <td class="px-6 py-4 text-sm text-right text-gray-900">${formatNumber(total)}</td>
+          <td class="px-6 py-4 text-sm text-right text-gray-900">${formatNumber(sheetTotal)}</td>
         </tr>
       `;
     });
@@ -560,7 +606,8 @@ async function renderSummarySection() {
     html += `
         <tr class="font-bold bg-gray-100">
           <td class="px-6 py-3 text-sm text-gray-700 text-right">Tổng cộng:</td>
-          <td class="px-6 py-3 text-sm text-gray-900 text-right">${formatNumber(totalAll)}</td>
+          <td class="px-6 py-3 text-sm text-gray-900 text-right">${formatNumber(totalAllQty)}</td>
+          <td class="px-6 py-3 text-sm text-gray-900 text-right">${formatNumber(totalAllSheets)}</td>
         </tr>
         </tbody>
       </table>
@@ -568,7 +615,6 @@ async function renderSummarySection() {
 
     container.innerHTML = html;
 
-    // ✅ Gắn sự kiện click từng dòng
     document.querySelectorAll('tbody tr').forEach(tr => {
       const firstCell = tr.querySelector('td');
       const machineName = firstCell?.textContent?.trim();
@@ -576,7 +622,7 @@ async function renderSummarySection() {
         tr.classList.add('hover:bg-gray-100', 'cursor-pointer');
         tr.addEventListener('click', () => {
           currentMachine = machineName;
-          loadDetailsClient(machineName, true);  // ✅ gọi đúng
+          loadDetailsClient(machineName, true);
         });
       }
     });
@@ -588,6 +634,7 @@ async function renderSummarySection() {
     setBtnLoading(btnSummary, false);
   }
 }
+
 
 
 

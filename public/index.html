@@ -4,13 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Dashboard Tổng Hợp</title>
-  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 min-h-screen p-6">
 
-  <!-- ==== Thanh Tìm chung (dùng cho Progress View) ==== -->
-  <div id="progress-search-bar" class="flex flex-col sm:flex-row sm:items-center gap-2 mb-3">
+  <!-- ==== TÌM KIẾM CƠ BẢN (chỉ hiển thị ở Progress View) ==== -->
+  <h2 id="basic-search-title" class="text-lg font-semibold mb-1 hidden">TÌM KIẾM ĐƠN GIẢN</h2>
+  <div id="progress-search-bar" class="flex flex-col sm:flex-row sm:items-center gap-2 mb-3 hidden">
     <select id="progressColumnSelect" class="w-full border px-2 py-1 rounded">
       <option value="PRO ODER">PRO ORDER</option>
       <option value="Brand Code">BRAND</option>
@@ -29,15 +29,53 @@
     </div>
   </div>
 
-  <!-- ==== Nút Raw / Summary / Progress / Refresh / Cập nhật ==== -->
+  <!-- ==== TÌM KIẾM NÂNG CAO (chỉ hiển thị ở Progress View) ==== -->
+  <h2 id="advanced-search-title" class="text-lg font-semibold mb-1 hidden">TÌM KIẾM NÂNG CAO</h2>
+  <div id="progress-advanced-filter" class="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4 hidden">
+    <div>
+      <label><input type="checkbox" class="progress-check" data-key="PRO ODER" /> PRO ORDER</label>
+      <input type="text" class="progress-input w-full border px-2 py-1 rounded" data-key="PRO ODER" />
+    </div>
+    <div>
+      <label><input type="checkbox" class="progress-check" data-key="Brand Code" /> BRAND</label>
+      <input type="text" class="progress-input w-full border px-2 py-1 rounded" data-key="Brand Code" />
+    </div>
+    <div>
+      <label><input type="checkbox" class="progress-check" data-key="LAMINATION MACHINE (REALTIME)" /> MÁY THỰC TẾ</label>
+      <input type="text" class="progress-input w-full border px-2 py-1 rounded" data-key="LAMINATION MACHINE (REALTIME)" />
+    </div>
+    <div>
+      <label><input type="checkbox" class="progress-check" data-key="#MOLDED" /> LOẠI HÀNG (#MOLDED)</label>
+      <input type="text" class="progress-input w-full border px-2 py-1 rounded" data-key="#MOLDED" />
+    </div>
+    <div>
+      <label><input type="checkbox" class="progress-check" data-key="BOM" /> BOM</label>
+      <input type="text" class="progress-input w-full border px-2 py-1 rounded" data-key="BOM" />
+    </div>
+    <div>
+      <label><input type="checkbox" class="progress-check" data-key="PU" /> PU</label>
+      <input type="text" class="progress-input w-full border px-2 py-1 rounded" data-key="PU" />
+    </div>
+    <div>
+      <label><input type="checkbox" class="progress-check" data-key="FB" /> Mã vải</label>
+      <input type="text" class="progress-input w-full border px-2 py-1 rounded" data-key="FB" />
+    </div>
+    <div>
+      <label><input type="checkbox" class="progress-check" data-key="STATUS" /> TRẠNG THÁI</label>
+      <input type="text" class="progress-input w-full border px-2 py-1 rounded" data-key="STATUS" />
+    </div>
+  </div>
+
+  <!-- ==== NÚT CHUYỂN VIEW ==== -->
   <div class="flex items-center space-x-2 mb-4">
-    
-    </button>
     <button id="btn-summary" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
       Summary View
     </button>
     <button id="btn-progress" class="px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600">
       Progress
+    </button>
+    <button id="btn-delay" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
+      Delay - Xuất gấp
     </button>
     <button id="btn-refresh" class="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600">
       Refresh
@@ -45,19 +83,25 @@
     <span id="last-updated" class="ml-auto text-sm text-gray-600">Cập nhật: --:--:--</span>
   </div>
 
-  <!-- ==== Section selector (Lamination, Prefitting, ...) ==== -->
+  <!-- ==== TAB Delay / Xuất Gấp ==== -->
+  <div id="delay-tabs" class="hidden flex gap-2 mb-4">
+    <button id="btn-delay-tab" class="bg-gray-300 px-4 py-1 rounded">Delay</button>
+    <button id="btn-urgent-tab" class="bg-gray-300 px-4 py-1 rounded">Xuất gấp</button>
+  </div>
+
+  <!-- ==== KHU VỰC CHỌN BỘ PHẬN ==== -->
   <div id="section-bar" class="flex space-x-2 mb-4"></div>
 
-  <!-- ==== Kết quả tìm kiếm chung ==== -->
+  <!-- ==== KẾT QUẢ TÌM KIẾM ==== -->
   <div id="searchResult" class="mb-6"></div>
 
-  <!-- ==== Container bảng Raw/Summary/Progress ==== -->
+  <!-- ==== BẢNG DỮ LIỆU CHÍNH ==== -->
   <div id="table-container" class="bg-white shadow rounded overflow-x-auto mb-6"></div>
 
-  <!-- ==== Container bảng Details (Raw/Detail/…) ==== -->
+  <!-- ==== BẢNG CHI TIẾT ==== -->
   <div id="details-container" class="bg-white shadow rounded overflow-x-auto hidden"></div>
 
-  <!-- Main Script -->
+  <!-- ==== SCRIPT CHÍNH ==== -->
   <script src="/script.js"></script>
 </body>
 </html>
