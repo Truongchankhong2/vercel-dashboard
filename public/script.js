@@ -521,11 +521,28 @@ btnDelayUrgent.addEventListener('click', () => {
 
 btnDelayTab.addEventListener('click', () => {
   loadDelayUrgentData('DELAY');
+
+  // Highlight nút Delay
+  btnDelayTab.classList.add('bg-yellow-400', 'text-white');
+  btnDelayTab.classList.remove('bg-gray-300', 'text-black');
+
+  // Bỏ highlight nút Xuất gấp
+  btnUrgentTab.classList.remove('bg-yellow-400', 'text-white');
+  btnUrgentTab.classList.add('bg-gray-300', 'text-black');
 });
 
 btnUrgentTab.addEventListener('click', () => {
   loadDelayUrgentData('URGENT');
+
+  // Highlight nút Xuất gấp
+  btnUrgentTab.classList.add('bg-yellow-400', 'text-white');
+  btnUrgentTab.classList.remove('bg-gray-300', 'text-black');
+
+  // Bỏ highlight nút Delay
+  btnDelayTab.classList.remove('bg-yellow-400', 'text-white');
+  btnDelayTab.classList.add('bg-gray-300', 'text-black');
 });
+
 
 progressBtnSearch.addEventListener('click', searchProgress);
 progressBtnClear.addEventListener('click', clearProgressSearch);
