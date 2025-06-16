@@ -537,7 +537,7 @@ const sectionButtons = [
 // Hàm vẽ nút
 function renderSectionButtons() {
   const sectionBar = document.getElementById('section-bar');
-  sectionBar.innerHTML = '';
+  document.getElementById('section-bar').innerHTML = '';
   sectionButtons.forEach(({ id, label, value }) => {
     const btn = document.createElement('button');
     btn.id = id;
@@ -679,16 +679,17 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 function hideAllViews() {
-  sectionBar.innerHTML = '';
-  searchResult.innerHTML = '';
-  tableContainer.innerHTML = '';
-  detailsContainer.classList.add('hidden');
-  progressSearchBar.classList.add('hidden');
-  progressAdvancedFilter.classList.add('hidden');
-  basicSearchTitle.classList.add('hidden');
-  advancedSearchTitle.classList.add('hidden');
-  delayTabs.classList.add('hidden');
+  document.getElementById('section-bar').innerHTML = '';
+  document.getElementById('searchResult').innerHTML = '';
+  document.getElementById('table-container').innerHTML = '';
+  document.getElementById('details-container').classList.add('hidden');
+  document.getElementById('progress-search-bar').classList.add('hidden');
+  document.getElementById('progress-advanced-filter').classList.add('hidden');
+  document.getElementById('basic-search-title')?.classList.add('hidden');
+  document.getElementById('advanced-search-title')?.classList.add('hidden');
+  document.getElementById('delay-tabs')?.classList.add('hidden');
 }
+
 function loadDelayUrgentData(type) {
   fetch('/powerapp.json')
     .then(res => res.json())
