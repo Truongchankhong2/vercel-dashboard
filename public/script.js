@@ -8,10 +8,17 @@ const btnRaw           = document.getElementById('btn-raw');
 const btnSummary       = document.getElementById('btn-summary');
 const btnProgress      = document.getElementById('btn-progress');
 const btnRefresh       = document.getElementById('btn-refresh');
-const btnDelayUrgent = document.getElementById('btn-delay');       // nút đỏ chuyển view
+const btnDelayUrgent = document.getElementById('btn-delay-urgent');      // nút đỏ chuyển view
 const btnDelayTab = document.getElementById('btn-delay-tab');      // nút tab "Delay"
 const btnUrgentTab = document.getElementById('btn-urgent-tab');    // nút tab "Xuất gấp"
 const delayTabs      = document.getElementById('delay-tabs');
+
+const delaySearchBox = document.getElementById('delaySearchBox');
+const delayColumnSelect = document.getElementById('delayColumnSelect');
+const delayBtnSearch = document.getElementById('delayBtnSearch');
+const delayBtnClear = document.getElementById('delayBtnClear');
+const delaySearchBar = document.getElementById('delay-search-bar');
+const delayAdvancedFilter = document.getElementById('delay-advanced-filter');
 
 // Elements cho Progress View
 const progressSearchBar = document.getElementById('progress-search-bar');
@@ -526,6 +533,15 @@ btnDelayUrgent.addEventListener('click', () => {
 
 btnDelayTab.addEventListener('click', () => {
   loadDelayUrgentData('DELAY');
+// === STEP 5: Bind button tìm kiếm Delay-Urgent ===
+delayBtnSearch.addEventListener('click', () => loadDelayUrgentData('DELAY'));
+
+delayBtnClear.addEventListener('click', () => {
+  delaySearchBox.value = '';
+  document.querySelectorAll('.delay-input').forEach(i => i.value = '');
+  document.querySelectorAll('.delay-check').forEach(c => c.checked = false);
+  loadDelayUrgentData('DELAY');
+});
 
   // Highlight nút Delay
   btnDelayTab.classList.add('bg-yellow-400', 'text-white');
@@ -553,6 +569,15 @@ btnUrgentTab.addEventListener('click', () => {
 
 progressBtnSearch.addEventListener('click', searchProgress);
 progressBtnClear.addEventListener('click', clearProgressSearch);
+// ✅ STEP 5: Bind button tìm kiếm Delay-Urgent
+delayBtnSearch.addEventListener('click', () => loadDelayUrgentData('DELAY'));
+
+delayBtnClear.addEventListener('click', () => {
+  delaySearchBox.value = '';
+  document.querySelectorAll('.delay-input').forEach(i => i.value = '');
+  document.querySelectorAll('.delay-check').forEach(c => c.checked = false);
+  loadDelayUrgentData('DELAY');
+});
 
 // Biến toàn cục
 let selectedSection = 'LAMINATION';
@@ -698,10 +723,65 @@ btnRefresh.addEventListener('click', () => window.location.reload());
 
 progressBtnSearch.addEventListener('click', searchProgress);
 progressBtnClear.addEventListener('click', clearProgressSearch);
+// ✅ STEP 5: Bind button tìm kiếm Delay-Urgent
+delayBtnSearch.addEventListener('click', () => loadDelayUrgentData('DELAY'));
+
+delayBtnClear.addEventListener('click', () => {
+  delaySearchBox.value = '';
+  document.querySelectorAll('.delay-input').forEach(i => i.value = '');
+  document.querySelectorAll('.delay-check').forEach(c => c.checked = false);
+  loadDelayUrgentData('DELAY');
+});
 
 // ✅ Gọi khi load trang xong
 window.addEventListener('DOMContentLoaded', () => {
   loadSummary();
+
+  btnSummary.addEventListener('click', loadSummary);
+  btnProgress.addEventListener('click', loadProgress);
+  btnRefresh.addEventListener('click', () => window.location.reload());
+
+  btnDelayUrgent.addEventListener('click', () => {
+    hideAllViews();
+    delayTabs.classList.remove('hidden');
+    delaySearchBar.classList.remove('hidden');
+    delayAdvancedFilter.classList.remove('hidden');
+    loadDelayUrgentData('DELAY');
+
+    btnDelayTab.classList.add('bg-yellow-400', 'text-white');
+    btnDelayTab.classList.remove('bg-gray-300', 'text-black');
+    btnUrgentTab.classList.remove('bg-yellow-400', 'text-white');
+    btnUrgentTab.classList.add('bg-gray-300', 'text-black');
+  });
+
+  btnDelayTab.addEventListener('click', () => {
+    loadDelayUrgentData('DELAY');
+
+    btnDelayTab.classList.add('bg-yellow-400', 'text-white');
+    btnDelayTab.classList.remove('bg-gray-300', 'text-black');
+    btnUrgentTab.classList.remove('bg-yellow-400', 'text-white');
+    btnUrgentTab.classList.add('bg-gray-300', 'text-black');
+  });
+
+  btnUrgentTab.addEventListener('click', () => {
+    loadDelayUrgentData('URGENT');
+
+    btnUrgentTab.classList.add('bg-yellow-400', 'text-white');
+    btnUrgentTab.classList.remove('bg-gray-300', 'text-black');
+    btnDelayTab.classList.remove('bg-yellow-400', 'text-white');
+    btnDelayTab.classList.add('bg-gray-300', 'text-black');
+  });
+
+  progressBtnSearch.addEventListener('click', searchProgress);
+  progressBtnClear.addEventListener('click', clearProgressSearch);
+
+  delayBtnSearch.addEventListener('click', () => loadDelayUrgentData('DELAY'));
+  delayBtnClear.addEventListener('click', () => {
+    delaySearchBox.value = '';
+    document.querySelectorAll('.delay-input').forEach(i => i.value = '');
+    document.querySelectorAll('.delay-check').forEach(c => c.checked = false);
+    loadDelayUrgentData('DELAY');
+  });
 });
 
 function hideAllViews() {
@@ -728,11 +808,34 @@ function loadDelayUrgentData(type) {
   fetch('/powerapp.json')
     .then(res => res.json())
     .then(data => {
+
+      const keyword = delaySearchBox.value.trim().toLowerCase();
+      const selectedField = delayColumnSelect.value;
+
+      // Lọc theo điều kiện nâng cao
+      const inputs = document.querySelectorAll('.delay-input');
+      const checks = document.querySelectorAll('.delay-check');
+      const filters = {};
+      checks.forEach(chk => {
+        if (chk.checked) {
+          const key = chk.dataset.key;
+          const input = [...inputs].find(i => i.dataset.key === key);
+          if (input && input.value.trim()) filters[key] = input.value.trim().toLowerCase();
+        }
+      });
+
       const filtered = data.filter(row => {
-        const val = (row['Delay/Urgent'] || '').toString().trim().toUpperCase();
-        if (type === 'DELAY') return val === 'PRODUCTION DELAY';
-        if (type === 'URGENT') return val === 'URGENT';
-        return false;
+        const delayVal = (row['Delay/Urgent'] || '').toUpperCase();
+        if ((type === 'DELAY' && delayVal !== 'PRODUCTION DELAY') || (type === 'URGENT' && delayVal !== 'URGENT')) return false;
+
+        const main = (row[selectedField] || '').toString().toLowerCase();
+        const matchBasic = !keyword || main.includes(keyword);
+
+        const matchAdvanced = Object.entries(filters).every(([k, v]) => {
+          return (row[k] || '').toString().toLowerCase().includes(v);
+        });
+
+        return matchBasic && matchAdvanced;
       });
 
       const headers = ['STT', 'PRO ODER', 'Brand Code', '#MOLDED', 'BOM', 'Total Qty', 'Finish date', 'PPC Confirm', 'STORED', 'STATUS'];
@@ -777,6 +880,10 @@ function hideDelayUrgentButtons() {
 }
 // ==== Load Delay hoặc Urgent View ====
 function loadDelayUrgentView(type) {
+  hideAllViews();
+  delayTabs.classList.remove('hidden');
+  delaySearchBar.classList.remove('hidden');
+  delayAdvancedFilter.classList.remove('hidden');
   // Ẩn các phần khác
 
     document.getElementById('progress-search-bar').classList.add('hidden');
