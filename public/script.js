@@ -804,3 +804,26 @@ function loadDelayUrgentView(type) {
   table.appendChild(tbody);
   container.appendChild(table);
 }
+// Xử lý đổi màu khi chọn Delay hoặc Xuất gấp
+const btnDelay = document.getElementById('btn-delay');
+const btnUrgent = document.getElementById('btn-urgent');
+
+btnDelay.addEventListener('click', () => {
+  // Đổi màu khi chọn Delay
+  btnDelay.classList.remove('bg-gray-300', 'text-black');
+  btnDelay.classList.add('bg-yellow-400', 'text-white');
+
+  // Reset màu nút Xuất gấp
+  btnUrgent.classList.remove('bg-yellow-400', 'text-white');
+  btnUrgent.classList.add('bg-gray-300', 'text-black');
+});
+
+btnUrgent.addEventListener('click', () => {
+  // Đổi màu khi chọn Xuất gấp
+  btnUrgent.classList.remove('bg-gray-300', 'text-black');
+  btnUrgent.classList.add('bg-yellow-400', 'text-white');
+
+  // Reset màu nút Delay
+  btnDelay.classList.remove('bg-yellow-400', 'text-white');
+  btnDelay.classList.add('bg-gray-300', 'text-black');
+});
