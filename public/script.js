@@ -245,11 +245,10 @@ async function searchProgress() {
     // Lọc dữ liệu theo: chọn 1 cột + checkbox nâng cao
     const filtered = data.filter(row => {
       const val = (row['Delay/Urgent'] || '').toUpperCase();
-      if (type === 'DELAY') return val === 'PRODUCTION DELAY';
-      if (type === 'URGENT') return val === 'URGENT';
-      return false;
-    });
 
+      let matchBasic = false;
+      if (type === 'DELAY') matchBasic = val === 'PRODUCTION DELAY';
+      if (type === 'URGENT') matchBasic = val === 'URGENT';
 
       const matchAdvanced = Object.entries(filters).every(([key, val]) => {
         const v = (row[key] || '').toString().toLowerCase();
@@ -258,6 +257,7 @@ async function searchProgress() {
 
       return matchBasic && matchAdvanced;
     });
+
 
     if (filtered.length === 0) {
       container.innerHTML = `<div class="text-center py-4 text-red-500">Không tìm thấy dữ liệu khớp.</div>`;
