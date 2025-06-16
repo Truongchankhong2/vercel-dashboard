@@ -715,6 +715,14 @@ function hideAllViews() {
   document.getElementById('advanced-search-title')?.classList.add('hidden');
   document.getElementById('delay-tabs')?.classList.add('hidden');
 }
+function formatExcelDate(serial) {
+  if (!serial || isNaN(serial)) return '';
+  const base = new Date(1899, 11, 30);
+  const date = new Date(base.getTime() + serial * 86400000);
+  return `${String(date.getDate()).padStart(2, '0')}/` +
+         `${String(date.getMonth() + 1).padStart(2, '0')}/` +
+         `${date.getFullYear()}`;
+}
 
 function loadDelayUrgentData(type) {
   fetch('/powerapp.json')
@@ -735,28 +743,34 @@ function loadDelayUrgentData(type) {
             <tr>${headers.map(h => `<th class="px-2 py-1 border">${h}</th>`).join('')}</tr>
           </thead>
           <tbody>
-            ${filtered.map((row, i) => `
-              <tr>
-                <td class="border px-2 py-1">${i + 1}</td>
-                <td class="border px-2 py-1">${row['PRO ODER'] || ''}</td>
-                <td class="border px-2 py-1">${row['Brand Code'] || ''}</td>
-                <td class="border px-2 py-1">${row['#MOLDED'] || ''}</td>
-                <td class="border px-2 py-1">${row['BOM'] || ''}</td>
-                <td class="border px-2 py-1">${row['Total Qty'] || ''}</td>
-                <td class="border px-2 py-1">${row['Finish date'] || ''}</td>
-                <td class="border px-2 py-1">${row['PPC Confirm'] || ''}</td>
-                <td class="border px-2 py-1">${row['STORED'] || ''}</td>
-                <td class="border px-2 py-1">${row['STATUS'] || ''}</td>
-              </tr>
-            `).join('')}
+            ${filtered.map((row, i) => {
+              const finishDate = row['Finish date'];
+              const ppcConfirm = row['PPC Confirm'];
+              const stored = row['STORED'];
+
+              return `
+                <tr>
+                  <td class="border px-2 py-1">${i + 1}</td>
+                  <td class="border px-2 py-1">${row['PRO ODER'] || ''}</td>
+                  <td class="border px-2 py-1">${row['Brand Code'] || ''}</td>
+                  <td class="border px-2 py-1">${row['#MOLDED'] || ''}</td>
+                  <td class="border px-2 py-1">${row['BOM'] || ''}</td>
+                  <td class="border px-2 py-1">${row['Total Qty'] || ''}</td>
+                  <td class="border px-2 py-1">${formatExcelDate(Number(finishDate))}</td>
+                  <td class="border px-2 py-1">${formatExcelDate(Number(ppcConfirm))}</td>
+                  <td class="border px-2 py-1">${formatExcelDate(Number(stored))}</td>
+                  <td class="border px-2 py-1">${row['STATUS'] || ''}</td>
+                </tr>
+              `;
+            }).join('')}
           </tbody>
         </table>
       `;
 
       document.getElementById('table-container').innerHTML = html;
-
     });
 }
+
 function hideDelayUrgentButtons() {
   btnDelay.classList.add('hidden');
   btnUrgent.classList.add('hidden');
