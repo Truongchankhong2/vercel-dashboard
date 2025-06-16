@@ -694,7 +694,13 @@ function loadDelayUrgentData(type) {
   fetch('/powerapp.json')
     .then(res => res.json())
     .then(data => {
-      const filtered = data.filter(row => (row['Delay/Urgent'] || '').toUpperCase() === type);
+      const filtered = data.filter(...)(row => {
+        const val = (row['Delay/Urgent'] || '').toString().trim().toUpperCase();
+        if (type === 'DELAY') return val === 'PRODUCTION DELAY';
+        if (type === 'URGENT') return val === 'URGENT';
+        return false;
+      });
+
       const headers = ['STT', 'PRO ODER', 'Brand Code', '#MOLDED', 'BOM', 'Total Qty', 'Finish date', 'PPC Confirm', 'STORED', 'STATUS'];
 
       let html = `
