@@ -8,7 +8,8 @@ const btnRaw           = document.getElementById('btn-raw');
 const btnSummary       = document.getElementById('btn-summary');
 const btnProgress      = document.getElementById('btn-progress');
 const btnRefresh       = document.getElementById('btn-refresh');
-const btnDelayUrgent = document.getElementById('btn-delay');
+const btnDelayUrgent = document.getElementById('btn-delay-main');
+
 
 const delayTabs = document.getElementById('delay-tabs');
 const btnDelayTab = document.getElementById('btn-delay-tab');
@@ -805,25 +806,27 @@ function loadDelayUrgentView(type) {
   container.appendChild(table);
 }
 // Xử lý đổi màu khi chọn Delay hoặc Xuất gấp
-const btnDelay = document.getElementById('btn-delay');
-const btnUrgent = document.getElementById('btn-urgent');
+const btnDelayTab = document.getElementById('btn-delay-tab');
+const btnUrgentTab = document.getElementById('btn-urgent-tab');
 
-btnDelay.addEventListener('click', () => {
-  // Đổi màu khi chọn Delay
-  btnDelay.classList.remove('bg-gray-300', 'text-black');
-  btnDelay.classList.add('bg-yellow-400', 'text-white');
+// Sự kiện nút Delay
+btnDelayTab.addEventListener('click', () => {
+  loadDelayUrgentData('DELAY');
 
-  // Reset màu nút Xuất gấp
-  btnUrgent.classList.remove('bg-yellow-400', 'text-white');
-  btnUrgent.classList.add('bg-gray-300', 'text-black');
+  btnDelayTab.classList.add('bg-yellow-400', 'text-white');
+  btnDelayTab.classList.remove('bg-gray-300', 'text-black');
+
+  btnUrgentTab.classList.remove('bg-yellow-400', 'text-white');
+  btnUrgentTab.classList.add('bg-gray-300', 'text-black');
 });
 
-btnUrgent.addEventListener('click', () => {
-  // Đổi màu khi chọn Xuất gấp
-  btnUrgent.classList.remove('bg-gray-300', 'text-black');
-  btnUrgent.classList.add('bg-yellow-400', 'text-white');
+// Sự kiện nút Xuất gấp
+btnUrgentTab.addEventListener('click', () => {
+  loadDelayUrgentData('URGENT');
 
-  // Reset màu nút Delay
-  btnDelay.classList.remove('bg-yellow-400', 'text-white');
-  btnDelay.classList.add('bg-gray-300', 'text-black');
+  btnUrgentTab.classList.add('bg-yellow-400', 'text-white');
+  btnUrgentTab.classList.remove('bg-gray-300', 'text-black');
+
+  btnDelayTab.classList.remove('bg-yellow-400', 'text-white');
+  btnDelayTab.classList.add('bg-gray-300', 'text-black');
 });
