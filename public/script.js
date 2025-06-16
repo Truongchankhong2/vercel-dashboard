@@ -8,6 +8,11 @@ const btnRaw           = document.getElementById('btn-raw');
 const btnSummary       = document.getElementById('btn-summary');
 const btnProgress      = document.getElementById('btn-progress');
 const btnRefresh       = document.getElementById('btn-refresh');
+const btnDelayUrgent = document.getElementById('btn-delay');
+
+const delayTabs = document.getElementById('delay-tabs');
+const btnDelayTab = document.getElementById('btn-delay-tab');
+const btnUrgentTab = document.getElementById('btn-urgent-tab');
 
 // Elements cho Progress View
 const progressSearchBar = document.getElementById('progress-search-bar');
@@ -506,6 +511,20 @@ btnRefresh.addEventListener('click', () => {
 btnSummary.addEventListener('click', loadSummary);
 btnProgress.addEventListener('click', loadProgress);
 
+btnDelayUrgent.addEventListener('click', () => {
+  hideAllViews();
+  delayTabs.classList.remove('hidden');
+  loadDelayUrgentData('DELAY'); // Mặc định là Delay
+});
+
+btnDelayTab.addEventListener('click', () => {
+  loadDelayUrgentData('DELAY');
+});
+
+btnUrgentTab.addEventListener('click', () => {
+  loadDelayUrgentData('URGENT');
+});
+
 progressBtnSearch.addEventListener('click', searchProgress);
 progressBtnClear.addEventListener('click', clearProgressSearch);
 
@@ -659,4 +678,48 @@ window.addEventListener('DOMContentLoaded', () => {
   loadSummary();
 });
 
+function hideAllViews() {
+  sectionBar.innerHTML = '';
+  searchResult.innerHTML = '';
+  tableContainer.innerHTML = '';
+  detailsContainer.classList.add('hidden');
+  progressSearchBar.classList.add('hidden');
+  progressAdvancedFilter.classList.add('hidden');
+  basicSearchTitle.classList.add('hidden');
+  advancedSearchTitle.classList.add('hidden');
+  delayTabs.classList.add('hidden');
+}
+function loadDelayUrgentData(type) {
+  fetch('/powerapp.json')
+    .then(res => res.json())
+    .then(data => {
+      const filtered = data.filter(row => (row['Delay/Urgent'] || '').toUpperCase() === type);
+      const headers = ['STT', 'PRO ODER', 'Brand Code', '#MOLDED', 'BOM', 'Total Qty', 'Finish date', 'PPC Confirm', 'STORED', 'STATUS'];
 
+      let html = `
+        <table class="min-w-full text-sm text-left border">
+          <thead class="bg-gray-200">
+            <tr>${headers.map(h => `<th class="px-2 py-1 border">${h}</th>`).join('')}</tr>
+          </thead>
+          <tbody>
+            ${filtered.map((row, i) => `
+              <tr>
+                <td class="border px-2 py-1">${i + 1}</td>
+                <td class="border px-2 py-1">${row['PRO ODER'] || ''}</td>
+                <td class="border px-2 py-1">${row['Brand Code'] || ''}</td>
+                <td class="border px-2 py-1">${row['#MOLDED'] || ''}</td>
+                <td class="border px-2 py-1">${row['BOM'] || ''}</td>
+                <td class="border px-2 py-1">${row['Total Qty'] || ''}</td>
+                <td class="border px-2 py-1">${row['Finish date'] || ''}</td>
+                <td class="border px-2 py-1">${row['PPC Confirm'] || ''}</td>
+                <td class="border px-2 py-1">${row['STORED'] || ''}</td>
+                <td class="border px-2 py-1">${row['STATUS'] || ''}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+
+      tableContainer.innerHTML = html;
+    });
+}
