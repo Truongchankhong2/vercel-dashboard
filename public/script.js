@@ -11,7 +11,7 @@ const btnRefresh       = document.getElementById('btn-refresh');
 const btnDelayUrgent = document.getElementById('btn-delay');       // nút đỏ chuyển view
 const btnDelayTab = document.getElementById('btn-delay-tab');      // nút tab "Delay"
 const btnUrgentTab = document.getElementById('btn-urgent-tab');    // nút tab "Xuất gấp"
-
+const delayTabs      = document.getElementById('delay-tabs');
 
 // Elements cho Progress View
 const progressSearchBar = document.getElementById('progress-search-bar');
@@ -511,11 +511,18 @@ btnRefresh.addEventListener('click', () => {
 btnSummary.addEventListener('click', loadSummary);
 btnProgress.addEventListener('click', loadProgress);
 
-btn-delay.addEventListener('click', () => {
+btnDelayUrgent.addEventListener('click', () => {
   hideAllViews();
   delayTabs.classList.remove('hidden');
   loadDelayUrgentData('DELAY'); // Mặc định là Delay
+
+  // Mặc định highlight nút Delay khi mở
+  btnDelayTab.classList.add('bg-yellow-400', 'text-white');
+  btnDelayTab.classList.remove('bg-gray-300', 'text-black');
+  btnUrgentTab.classList.remove('bg-yellow-400', 'text-white');
+  btnUrgentTab.classList.add('bg-gray-300', 'text-black');
 });
+
 
 btnDelayTab.addEventListener('click', () => {
   loadDelayUrgentData('DELAY');
@@ -529,6 +536,7 @@ btnDelayTab.addEventListener('click', () => {
   btnUrgentTab.classList.add('bg-gray-300', 'text-black');
 });
 
+
 btnUrgentTab.addEventListener('click', () => {
   loadDelayUrgentData('URGENT');
 
@@ -540,6 +548,7 @@ btnUrgentTab.addEventListener('click', () => {
   btnDelayTab.classList.remove('bg-yellow-400', 'text-white');
   btnDelayTab.classList.add('bg-gray-300', 'text-black');
 });
+
 
 
 progressBtnSearch.addEventListener('click', searchProgress);
