@@ -806,8 +806,7 @@ function loadDelayUrgentView(type) {
   container.appendChild(table);
 }
 // Xử lý đổi màu khi chọn Delay hoặc Xuất gấp
-const btnDelayTab = document.getElementById('btn-delay-tab');
-const btnUrgentTab = document.getElementById('btn-urgent-tab');
+
 
 // Sự kiện nút Delay
 btnDelayTab.addEventListener('click', () => {
