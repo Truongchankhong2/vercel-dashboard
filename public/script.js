@@ -723,3 +723,75 @@ function loadDelayUrgentData(type) {
       tableContainer.innerHTML = html;
     });
 }
+function hideDelayUrgentButtons() {
+  btnDelay.classList.add('hidden');
+  btnUrgent.classList.add('hidden');
+}
+// ==== Load Delay hoặc Urgent View ====
+function loadDelayUrgentView(type) {
+  // Ẩn các phần khác
+
+    document.getElementById('progress-search-bar').classList.add('hidden');
+    document.getElementById('progress-advanced-filter').classList.add('hidden');
+    document.getElementById('section-bar').classList.add('hidden');
+    document.getElementById('details-container').classList.add('hidden');
+    document.getElementById('searchResult').innerHTML = '';
+    document.getElementById('table-container').innerHTML = '';
+
+
+  // Hiện bảng chính
+  const container = document.getElementById('table-container');
+  container.innerHTML = '';
+
+  // Đổi màu nút
+  document.getElementById('btn-delay').classList.remove('bg-red-500');
+  document.getElementById('btn-urgent').classList.remove('bg-red-500');
+  if (type === 'DELAY') {
+    document.getElementById('btn-delay').classList.add('bg-red-500');
+  } else {
+    document.getElementById('btn-urgent').classList.add('bg-red-500');
+  }
+
+  // Lọc dữ liệu
+  const table = document.createElement('table');
+  table.className = 'min-w-full table-auto border border-gray-300';
+  const thead = document.createElement('thead');
+  thead.innerHTML = `
+    <tr class="bg-gray-200 text-left">
+      <th class="border px-2 py-1">STT</th>
+      <th class="border px-2 py-1">PRO ODER</th>
+      <th class="border px-2 py-1">Brand Code</th>
+      <th class="border px-2 py-1">#MOLDED</th>
+      <th class="border px-2 py-1">BOM</th>
+      <th class="border px-2 py-1">Total Qty</th>
+      <th class="border px-2 py-1">Finish Date</th>
+      <th class="border px-2 py-1">PPC Confirm</th>
+      <th class="border px-2 py-1">STORED</th>
+      <th class="border px-2 py-1">STATUS</th>
+    </tr>
+  `;
+  table.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
+  let filtered = jsonData.filter(row => (row['Delay/Urgent'] || '').toUpperCase() === type);
+
+  filtered.forEach((row, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="border px-2 py-1">${i + 1}</td>
+      <td class="border px-2 py-1">${row['PRO ODER'] || ''}</td>
+      <td class="border px-2 py-1">${row['Brand Code'] || ''}</td>
+      <td class="border px-2 py-1">${row['#MOLDED'] || ''}</td>
+      <td class="border px-2 py-1">${row['BOM'] || ''}</td>
+      <td class="border px-2 py-1">${row['Total Qty'] || ''}</td>
+      <td class="border px-2 py-1">${row['Finish date'] || ''}</td>
+      <td class="border px-2 py-1">${row['PPC Confirm'] || ''}</td>
+      <td class="border px-2 py-1">${row['STORED'] || ''}</td>
+      <td class="border px-2 py-1">${row['STATUS'] || ''}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  table.appendChild(tbody);
+  container.appendChild(table);
+}
