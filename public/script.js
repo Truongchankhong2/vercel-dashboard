@@ -251,12 +251,14 @@ async function searchProgress() {
 
     // Lọc dữ liệu theo: chọn 1 cột + checkbox nâng cao
     const filtered = data.filter(row => {
-      const val = (row['Delay/Urgent'] || '').toUpperCase();
+      // 1. Lọc cơ bản theo dropdown + ô nhập keyword
+      const cell = row[selectedField];
+      const cellValue = cell !== undefined && cell !== null
+        ? cell.toString().toLowerCase()
+        : '';
+      const matchBasic = cellValue.includes(keyword);
 
-      let matchBasic = false;
-      if (type === 'DELAY') matchBasic = val === 'PRODUCTION DELAY';
-      if (type === 'URGENT') matchBasic = val === 'URGENT';
-
+      // 2. Lọc nâng cao theo các checkbox
       const matchAdvanced = Object.entries(filters).every(([key, val]) => {
         const v = (row[key] || '').toString().toLowerCase();
         return v.includes(val);
@@ -264,6 +266,7 @@ async function searchProgress() {
 
       return matchBasic && matchAdvanced;
     });
+
 
 
     if (filtered.length === 0) {
@@ -842,7 +845,7 @@ function loadDelayUrgentData(type) {
         return matchBasic && matchAdvanced;
       });
 
-      const headers = ['STT', 'PRO ODER', 'Brand Code', '#MOLDED', 'BOM', 'Total Qty', 'Finish date', 'PPC Confirm', 'STORED', 'STATUS'];
+      const headers = ['STT', 'PRO ODER', 'Brand Code', 'Loại hàng', 'Mã khuôn', 'BOM', 'Total Qty', 'Finish date', 'PPC Confirm', 'STORED', 'STATUS'];
 
       let html = `
         <table class="min-w-full text-sm text-left border">
@@ -861,6 +864,7 @@ function loadDelayUrgentData(type) {
                   <td class="border px-2 py-1">${row['PRO ODER'] || ''}</td>
                   <td class="border px-2 py-1">${row['Brand Code'] || ''}</td>
                   <td class="border px-2 py-1">${row['#MOLDED'] || ''}</td>
+                  <td class="border px-2 py-1">${row['#MOLD']      || ''}</td>
                   <td class="border px-2 py-1">${row['BOM'] || ''}</td>
                   <td class="border px-2 py-1">${row['Total Qty'] || ''}</td>
                   <td class="border px-2 py-1">${formatExcelDate(Number(finishDate))}</td>
