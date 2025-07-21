@@ -31,12 +31,14 @@ const delayErrorOnly = document.getElementById('delayErrorOnly');
 let currentDelayType = 'DELAY';
 
 // đổi tên cho dễ đọc
+// đổi tên cho dễ đọc
 const headerDisplayMap = {
   'PRO ODER': 'Order Code',
   'Brand Code': 'Brand',
   '#MOLD': 'Loại hàng',
   'Total Qty': 'PO Quantity (Pairs)',
-  'STATUS': 'Status-Trạng thái đơn',
+  'Delay/Urgent': 'Delay/Urgent',    // ← add this line
+  'STATUS': 'Status – Trạng thái đơn',
   'PU': 'Mã PU',
   'FB': 'Mã Vải',
   'FB DESCRIPTION': 'Tên Vải',
@@ -45,8 +47,9 @@ const headerDisplayMap = {
   'LEANLINE PLAN': 'Plan Machine',
   'LEANLINE (REALTIME)': 'Actual Machine',
   'Check': 'Verify',
-  'CheckLL': 'Verify'    // ← thêm dòng này
+  'CheckLL': 'Verify'
 };
+
 
 // Track view hiện tại: 'summary' | 'raw' | 'progress' | 'detail'
 let currentView   = 'summary';
@@ -361,9 +364,18 @@ function shouldDisplayRow(d, isInitial) {
 
     // 5) Chọn các cột cần hiển thị
     const selectedColumns = [
-      'PRO ODER', 'Brand Code', '#MOLD', 'Total Qty',
-      'STATUS', 'PU', 'FB', 'FB DESCRIPTION',
-      planCol, realtimeCol, verifyCol
+      'PRO ODER',
+      'Brand Code',
+      '#MOLD',
+      'Delay/Urgent',      // ← add this line
+      'Total Qty',
+      'STATUS',
+      'PU',
+      'FB',
+      'FB DESCRIPTION',
+      planCol,
+      realtimeCol,
+      verifyCol
     ];
     // 6) Xây đối tượng từ rows
     const details = rows.map((row, i) => {
@@ -613,6 +625,29 @@ function renderSectionButtons() {
     };
     bar.appendChild(btn);
   });
+ 
+}
+ function getDelayUrgentQty(machine, data) {
+  const planKey = selectedSection === 'LEANLINE_DC'
+    ? 'LEANLINE PLAN'
+    : 'LAMINATION MACHINE (PLAN)';
+
+  return data.reduce((sum, row) => {
+    const status = (row['STATUS'] || '').toUpperCase();
+    const delayType = (row['Delay/Urgent'] || '').toUpperCase();
+    const qty = Number(row['Total Qty']) || 0;
+    if (
+      row[planKey] === machine &&
+      (delayType === 'URGENT' || delayType === 'PRODUCTION DELAY') &&
+      (
+        (selectedSection === 'LEANLINE_DC' && ['5.LEAN LINE DC', '6.IN LEAN LINE DC'].includes(status)) ||
+        (selectedSection !== 'LEANLINE_DC' && status === `2.${selectedSection.toUpperCase()}`)
+      )
+    ) {
+      return sum + qty;
+    }
+    return sum;
+  }, 0);
 }async function renderSummarySection() {
   setBtnLoading(btnSummary, true);
   hideDetails();
@@ -666,6 +701,7 @@ function renderSectionButtons() {
           <tr>
             <th class="px-6 py-3 text-left">MACHINE</th>
             <th class="px-6 py-3 text-right">QUANTITY PAIR PLAN</th>
+            <th class="px-6 py-3 text-right">Delay/Urgent</th>
             ${selectedSection === 'LAMINATION'
               ? `<th class="px-6 py-3 text-right">SỐ TẤM (SHEET)</th>`
               : ''}
@@ -676,16 +712,23 @@ function renderSectionButtons() {
 
     let totalQty    = 0;
     let totalSheets = 0;
+    let totalDelayUrgent = 0;
+
     Object.keys(machines).sort().forEach(machine => {
       const qty    = machines[machine];
       const sh     = sheetCounts[machine] || 0;
       totalQty    += qty;
       totalSheets += sh;
+      const duQty = getDelayUrgentQty(machine, data);
+      totalDelayUrgent += duQty;
+
 
       html += `
         <tr class="hover:bg-gray-50 cursor-pointer" data-machine="${machine}">
           <td class="px-6 py-3 text-sm text-gray-700">${machine}</td>
           <td class="px-6 py-3 text-sm text-gray-900 text-right">${formatNumber(qty)}</td>
+          <td class="px-6 py-3 text-sm text-right text-red-600 font-semibold">${formatNumber(duQty)}</td>
+
           ${selectedSection === 'LAMINATION'
             ? `<td class="px-6 py-3 text-sm text-gray-900 text-right">${formatNumber(sh)}</td>`
             : ''}
@@ -698,6 +741,9 @@ function renderSectionButtons() {
         <tr class="font-bold bg-gray-100">
           <td class="px-6 py-3 text-sm text-gray-700 text-right">Tổng cộng:</td>
           <td class="px-6 py-3 text-sm text-gray-900 text-right">${formatNumber(totalQty)}</td>
+          <td class="px-6 py-3 text-sm text-right text-red-600 font-semibold">${formatNumber(totalDelayUrgent)}</td>
+
+
           ${selectedSection === 'LAMINATION'
             ? `<td class="px-6 py-3 text-sm text-gray-900 text-right">${formatNumber(totalSheets)}</td>`
             : ''}
@@ -1012,6 +1058,7 @@ function loadDelayUrgentView(type) {
       <th class="border px-2 py-1">#MOLDED</th>
       <th class="border px-2 py-1">BOM</th>
       <th class="border px-2 py-1">Total Qty</th>
+      <th class="px-2 py-1 text-[12px] font-bold text-gray-700 border">Delay/Urgent</th>
       <th class="border px-2 py-1">Finish Date</th>
       <th class="border px-2 py-1">PPC Confirm</th>
       <th class="border px-2 py-1">STORED</th>
@@ -1032,6 +1079,7 @@ function loadDelayUrgentView(type) {
       <td class="border px-2 py-1">${row['#MOLDED'] || ''}</td>
       <td class="border px-2 py-1">${row['BOM'] || ''}</td>
       <td class="border px-2 py-1">${row['Total Qty'] || ''}</td>
+      <td class="px-2 py-1 text-[12px] border text-red-600 font-semibold">${row['Delay/Urgent'] || ''}</td>
       <td class="border px-2 py-1">${row['Finish date'] || ''}</td>
       <td class="border px-2 py-1">${row['PPC Confirm'] || ''}</td>
       <td class="border px-2 py-1">${row['STORED'] || ''}</td>
