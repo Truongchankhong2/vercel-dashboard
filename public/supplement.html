@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bù hàng</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/html5-qrcode" defer></script>
+  <script src="/supplement.js" defer></script>
+</head>
+<body class="bg-gray-100 p-6">
+
+  <div class="max-w-xl mx-auto bg-white p-4 rounded shadow">
+    <h1 class="text-xl font-bold mb-4">Bù hàng</h1>
+
+    <!-- Scan video -->
+    <div id="qr-reader" class="mb-4"></div>
+    <!-- Nhập tay -->
+    <div class="mb-4">
+      <input type="text" id="manualRpro" placeholder="Nhập RPRO" 
+             class="border px-2 py-1 w-full" />
+      <button id="btn-manual-ok" class="mt-2 bg-blue-600 text-white px-4 py-1 rounded">
+        OK
+      </button>
+    </div>
+
+    <!-- Thông tin đơn -->
+    <div id="order-info" class="mb-4 hidden">
+      <p><b>RPRO:</b> <span id="info-rpro"></span></p>
+      <p><b>Giới tính:</b> <span id="info-gender"></span></p>
+      <p><b>Mã khuôn:</b> <span id="info-mold"></span></p>
+      <p><b>Mã dao:</b> <span id="info-tool"></span></p>
+      <p><b>Tên vải:</b> <span id="info-fabric"></span></p>
+      <p><b>BOM:</b> <span id="info-bom"></span></p>
+    </div>
+
+    <!-- Bảng size -->
+    <div id="size-table-container" class="overflow-x-auto hidden"></div>
+
+    <!-- Nút xác nhận -->
+    <div class="mt-4 text-right">
+      <button id="btn-confirm-supplement" 
+              class="bg-green-600 text-white px-6 py-2 rounded disabled:opacity-50">
+        Xác nhận
+      </button>
+    </div>
+  </div>
+
+</body>
+</html>

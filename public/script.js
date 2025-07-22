@@ -1,3 +1,8 @@
+const express = require("express");
+const path    = require("path");
+const XLSX    = require("xlsx");
+
+
 // --- DOM elements chung ---
 const container        = document.getElementById('table-container');
 const detailsContainer = document.getElementById('details-container');
