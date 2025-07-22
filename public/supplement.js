@@ -34,9 +34,9 @@ function handleScanned(text) {
 async function loadOrderInfo(rpro) {
   currentRpro = rpro;
   try {
-    const res = await fetch("/powerapp.json", { cache: "no-store" });
+    const res  = await fetch("/powerapp.json", { cache: "no-store" });
     const data = await res.json();
-    const rec = data.find(r => (r["PRO ODER"] || "") === rpro);
+    const rec  = data.find(r => (r["PRO ODER"] || "") === rpro);
     if (!rec) {
       alert("Không tìm thấy đơn " + rpro);
       return;
@@ -52,17 +52,17 @@ async function loadOrderInfo(rpro) {
 // 4) Vẽ thông tin đơn và bảng size
 function renderOrder(r) {
   // Metadata
-  document.getElementById("info-rpro").textContent   = r["PRO ODER"] || "";
-  document.getElementById("info-gender").textContent = r["Giới tính"] || r["Gender"] || "";
-  document.getElementById("info-mold").textContent   = r["#MOLD"] || "";
-  document.getElementById("info-tool").textContent   = r["Mã dao"] || "";
-  document.getElementById("info-fabric").textContent = r["Tên vải"] || r["FB DESCRIPTION"] || "";
-  document.getElementById("info-bom").textContent    = r["BOM"] || "";
+  document.getElementById("info-rpro").textContent   = r["PRO ODER"]   || "";
+  document.getElementById("info-gender").textContent = r["Giới tính"]   || r["Gender"] || "";
+  document.getElementById("info-mold").textContent   = r["#MOLD"]      || "";
+  document.getElementById("info-tool").textContent   = r["Mã dao"]      || "";
+  document.getElementById("info-fabric").textContent = r["Tên vải"]    || r["FB DESCRIPTION"] || "";
+  document.getElementById("info-bom").textContent    = r["BOM"]        || "";
   document.getElementById("order-info").classList.remove("hidden");
 
-  // Xác định cột Size: sau "CheckLL"
+  // Xác định cột Size: từ sau "CheckLL"
   const allKeys = Object.keys(r);
-  const idx = allKeys.indexOf("CheckLL");
+  const idx     = allKeys.indexOf("CheckLL");
   const sizeKeys = idx >= 0
     ? allKeys.slice(idx + 1)
     : allKeys.filter(k => /^#\d+(\.\d+)?$/.test(k));
@@ -115,9 +115,17 @@ function updateTotal() {
   document.getElementById("supp-total").textContent = sum;
 }
 
-// 6) Bind event & khởi QR chỉ khi DOM đã sẵn sàng
+// 6) Bind các sự kiện chỉ khi DOM đã load xong
 window.addEventListener("DOMContentLoaded", () => {
-  // Nút nhập tay OK
+  // Nút Bù hàng trên index.html
+  const btnSupplement = document.getElementById("btn-supplement");
+  if (btnSupplement) {
+    btnSupplement.addEventListener("click", () => {
+      window.location.href = "/supplement.html";
+    });
+  }
+
+  // Nút OK khi nhập tay
   const btnManual = document.getElementById("btn-manual-ok");
   if (btnManual) {
     btnManual.addEventListener("click", () => {
@@ -166,7 +174,7 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Khởi QR-reader nếu có div#qr-reader
+  // Khởi QR-reader nếu đang ở supplement.html
   if (document.getElementById("qr-reader")) {
     initQrScanner();
   }
