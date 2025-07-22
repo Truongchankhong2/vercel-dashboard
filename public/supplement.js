@@ -55,9 +55,9 @@ async function loadOrderInfo(rpro) {
 function renderOrder(r) {
   // 4.1) Metadata
   document.getElementById("info-rpro").textContent   = r["PRO ODER"]   || "";
-  document.getElementById("info-gender").textContent = r["Giới tính"]   || r["Gender"] || "";
+  document.getElementById("info-gender").textContent = r["Giới tính"]   || r["GENDER"] || "";
   document.getElementById("info-mold").textContent   = r["#MOLD"]      || "";
-  document.getElementById("info-tool").textContent   = r["Mã dao"]      || "";
+  document.getElementById("info-tool").textContent   = r["Mã dao"]      || r["#Last"] || "";
   document.getElementById("info-fabric").textContent = r["Tên vải"]    || r["FB DESCRIPTION"] || "";
   document.getElementById("info-bom").textContent    = r["BOM"]        || "";
   document.getElementById("order-info").classList.remove("hidden");
