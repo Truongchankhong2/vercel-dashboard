@@ -56,8 +56,8 @@ function renderOrder(r) {
   // 4.1) Metadata
   document.getElementById("info-rpro").textContent   = r["PRO ODER"]   || "";
   document.getElementById("info-gender").textContent = r["Giới tính"]   || r["GENDER"] || "";
-  document.getElementById("info-mold").textContent   = r["#MOLD"]      || r["#MOLD"] || "";
-  document.getElementById("info-tool").textContent   = r["Mã dao"]      || r["#Last"] || "";
+  document.getElementById("info-mold").textContent   = r["Mã Khuôn"]      || r["MOLD"] || "";
+  document.getElementById("info-tool").textContent   = r["Mã dao"]      || r["Last"] || "";
   document.getElementById("info-fabric").textContent = r["Tên vải"]    || r["FB DESCRIPTION"] || "";
   document.getElementById("info-bom").textContent    = r["BOM"]        || "";
   document.getElementById("order-info").classList.remove("hidden");
@@ -82,7 +82,8 @@ function renderOrder(r) {
     `;
 
     sizeKeys.forEach(size => {
-      const poQty   = Number(r[size]) || 0;
+      const poQty = Number(r[size]) || 0;
+      if (poQty === 0) return; // 🔹 Bỏ qua size có PO = 0
       html += `
         <tr>
           <td class="border px-2 py-1 text-center">${size}</td>
@@ -94,6 +95,7 @@ function renderOrder(r) {
         </tr>
       `;
     });
+
 
     html += `
         </tbody>
