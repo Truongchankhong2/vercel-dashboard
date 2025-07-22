@@ -56,7 +56,7 @@ function renderOrder(r) {
   // 4.1) Metadata
   document.getElementById("info-rpro").textContent   = r["PRO ODER"]   || "";
   document.getElementById("info-gender").textContent = r["Giới tính"]   || r["GENDER"] || "";
-  document.getElementById("info-mold").textContent   = r["#MOLD"]      || "";
+  document.getElementById("info-mold").textContent   = r["#MOLD"]      || r["#MOLD"] || "";
   document.getElementById("info-tool").textContent   = r["Mã dao"]      || r["#Last"] || "";
   document.getElementById("info-fabric").textContent = r["Tên vải"]    || r["FB DESCRIPTION"] || "";
   document.getElementById("info-bom").textContent    = r["BOM"]        || "";
@@ -69,77 +69,47 @@ function renderOrder(r) {
     : headersArr.filter(h => /^\d+(\.\d+)?$/.test(h));
 
   // 4.3) Build bảng
-  let html = `
-    <table class="min-w-full border border-gray-300">
-      <thead class="bg-gray-100">
-        <tr>
-          <th class="border px-2 py-1">Size</th>
-          <th class="border px-2 py-1">Số thiếu</th>
-          <th class="border px-2 py-1">PO Quantity</th>
-        </tr>
-      </thead>
-      <tbody>
-  `;
-  sizeKeys.forEach(size => {
-    const missing = Number(r[size]) || 0;
-    html += `
-      <tr>
-        <td class="border px-2 py-1 text-center">${size}</td>
-        <td class="border px-2 py-1 text-center">${missing}</td>
-        <td class="border px-2 py-1 text-center">${missing ? "" : ""}</td>
-        <td class="border px-2 py-1 text-center">
-          <input
-            type="number"
-            min="0"
-            value="0"
-            data-size="${size}"
-            class="w-16 input-supp"
-          />
-        </td>
-      </tr>
-    `.replace('<td class="border px-2 py-1 text-center"></td>', ''); // remove extra cell
-  });
-  html = html.replace(/<td class="border px-2 py-1 text-center"><\/td>/g, ''); // cleanup
-  // Actually PO Quantity should be the input, Số thiếu static, so:
-  html = `
-    <table class="min-w-full border border-gray-300">
-      <thead class="bg-gray-100">
-        <tr>
-          <th class="border px-2 py-1">Size</th>
-          <th class="border px-2 py-1">PO Quantity</th>
-          <th class="border px-2 py-1">Số thiếu</th>
-        </tr>
-      </thead>
-      <tbody>
-  `;
-  sizeKeys.forEach(size => {
-    const missing = Number(r[size]) || 0;
-    html += `
-      <tr>
-        <td class="border px-2 py-1 text-center">${size}</td>
-        <td class="border px-2 py-1 text-center">${missing}</td>
-        <td class="border px-2 py-1 text-center">
-          <input type="number" min="0" value="0"
-                 data-size="${size}" class="w-16 input-supp" />
-        </td>
-      </tr>
+    let html = `
+      <table class="min-w-full border border-gray-300">
+        <thead class="bg-gray-100">
+          <tr>
+            <th class="border px-2 py-1">Size</th>
+            <th class="border px-2 py-1">Số thiếu</th>
+            <th class="border px-2 py-1">PO Quantity</th>
+          </tr>
+        </thead>
+        <tbody>
     `;
-  });
-  html += `
-      </tbody>
-      <tfoot class="bg-gray-50">
-        <tr>
-          <td class="border px-2 py-1 font-bold">TOTAL</td>
-          <td class="border px-2 py-1 font-bold" id="supp-total">0</td>
-          <td class="border px-2 py-1"></td>
-        </tr>
-      </tfoot>
-    </table>
-  `;
 
-  const container = document.getElementById("size-table-container");
-  container.innerHTML = html;
-  container.classList.remove("hidden");
+    sizeKeys.forEach(size => {
+      const poQty   = Number(r[size]) || 0;
+      html += `
+        <tr>
+          <td class="border px-2 py-1 text-center">${size}</td>
+          <td class="border px-2 py-1 text-center">
+            <input type="number" min="0" value="0"
+                  data-size="${size}" class="w-16 input-supp" />
+          </td>
+          <td class="border px-2 py-1 text-center">${poQty}</td>
+        </tr>
+      `;
+    });
+
+    html += `
+        </tbody>
+        <tfoot class="bg-gray-50">
+          <tr>
+            <td class="border px-2 py-1 font-bold">TOTAL</td>
+            <td class="border px-2 py-1 font-bold" id="supp-total">0</td>
+            <td class="border px-2 py-1"></td>
+          </tr>
+        </tfoot>
+      </table>
+    `;
+
+    const container = document.getElementById("size-table-container");
+    container.innerHTML = html;
+    container.classList.remove("hidden");
 
   // 4.4) Bắt event tính tổng
   document.querySelectorAll(".input-supp").forEach(inp => {
