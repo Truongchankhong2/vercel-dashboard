@@ -25,14 +25,14 @@ function initQrScanner() {
   });
 }
 
-// 2) Xử lý khi quét hoặc nhập tay
+// 2) Tách RPRO từ QR hoặc nhập tay
 function handleScanned(text) {
   const parts = text.split("|");
   const rpro  = parts.length > 1 ? parts[1].trim() : text.trim();
   loadOrderInfo(rpro);
 }
 
-// 3) Fetch powerapp.json, lưu headers và tìm record
+// 3) Load headers + data từ powerapp.json
 async function loadOrderInfo(rpro) {
   currentRpro = rpro;
   try {
@@ -51,7 +51,7 @@ async function loadOrderInfo(rpro) {
   }
 }
 
-// 4) Vẽ metadata và bảng size, với header đã hoán vị
+// 4) Vẽ form
 function renderOrder(r) {
   // 4.1) Metadata
   document.getElementById("info-rpro").textContent   = r["PRO ODER"]   || "";
@@ -62,20 +62,20 @@ function renderOrder(r) {
   document.getElementById("info-bom").textContent    = r["BOM"]        || "";
   document.getElementById("order-info").classList.remove("hidden");
 
-  // 4.2) Xác định sizeKeys: header sau "CheckLL"
+  // 4.2) Xác định các cột size: headersArr sau "CheckLL"
   const idx = headersArr.indexOf("CheckLL");
-  let sizeKeys = idx >= 0
+  const sizeKeys = idx >= 0
     ? headersArr.slice(idx + 1)
     : headersArr.filter(h => /^\d+(\.\d+)?$/.test(h));
 
-  // 4.3) Build bảng với header đã đổi
+  // 4.3) Build bảng, với tiêu đề đã hoán vị, nhưng giữ ô nhập trước, ô missing sau
   let html = `
     <table class="min-w-full border border-gray-300">
       <thead class="bg-gray-100">
         <tr>
           <th class="border px-2 py-1">Size</th>
-          <th class="border px-2 py-1">Số lượng</th>   <!-- đã hoán vị -->
-          <th class="border px-2 py-1">Số thiếu</th>   <!-- đã hoán vị -->
+          <th class="border px-2 py-1">Số lượng</th>   <!-- giờ là ô nhập -->
+          <th class="border px-2 py-1">Số thiếu</th>   <!-- giờ là ô hiển thị missing -->
         </tr>
       </thead>
       <tbody>
@@ -121,74 +121,67 @@ function renderOrder(r) {
   document.getElementById("btn-confirm-supplement").disabled = false;
 }
 
-// 5) Cập nhật tổng (trên cột "Số lượng")
+// 5) Cập nhật tổng lên ô dưới cột "Số lượng"
 function updateTotal() {
   const sum = [...document.querySelectorAll(".input-supp")]
     .reduce((acc, inp) => acc + Number(inp.value || 0), 0);
   document.getElementById("supp-total").textContent = sum;
 }
 
-// 6) Bind sự kiện & init QR-reader khi DOM sẵn sàng
+// 6) Bind event & init QR-reader
 window.addEventListener("DOMContentLoaded", () => {
   // Nút Bù hàng (index.html)
   const btnSupp = document.getElementById("btn-supplement");
-  if (btnSupp) {
-    btnSupp.addEventListener("click", () => {
-      window.location.href = "/supplement.html";
-    });
-  }
+  if (btnSupp) btnSupp.addEventListener("click", () => {
+    window.location.href = "/supplement.html";
+  });
 
   // Nút OK nhập tay (supplement.html)
   const btnManual = document.getElementById("btn-manual-ok");
-  if (btnManual) {
-    btnManual.addEventListener("click", () => {
-      handleScanned(document.getElementById("manualRpro").value);
-    });
-  }
+  if (btnManual) btnManual.addEventListener("click", () => {
+    handleScanned(document.getElementById("manualRpro").value);
+  });
 
-  // Nút Xác nhận bù hàng
+  // Nút Xác nhận
   const btnConfirm = document.getElementById("btn-confirm-supplement");
-  if (btnConfirm) {
-    btnConfirm.addEventListener("click", async () => {
-      // Thu chi tiết theo data-size
-      const details = {};
-      document.querySelectorAll(".input-supp").forEach(inp => {
-        details[inp.dataset.size] = Number(inp.value) || 0;
-      });
-
-      const payload = {
-        rpro: currentRpro,
-        metadata: {
-          gender: document.getElementById("info-gender").textContent,
-          mold:   document.getElementById("info-mold").textContent,
-          tool:   document.getElementById("info-tool").textContent,
-          fabric: document.getElementById("info-fabric").textContent,
-          bom:    document.getElementById("info-bom").textContent
-        },
-        details,
-        total: Number(document.getElementById("supp-total").textContent)
-      };
-
-      try {
-        const res = await fetch("/supplement", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
-        if (res.ok) {
-          alert("Lưu bù hàng thành công!");
-          window.location.href = "/";
-        } else {
-          throw new Error("Server trả lỗi");
-        }
-      } catch (err) {
-        console.error("submit supplement:", err);
-        alert("Lỗi khi lưu, thử lại.");
-      }
+  if (btnConfirm) btnConfirm.addEventListener("click", async () => {
+    const details = {};
+    document.querySelectorAll(".input-supp").forEach(inp => {
+      details[inp.dataset.size] = Number(inp.value) || 0;
     });
-  }
 
-  // Nếu ở supplement.html, khởi QR-reader
+    const payload = {
+      rpro: currentRpro,
+      metadata: {
+        gender: document.getElementById("info-gender").textContent,
+        mold:   document.getElementById("info-mold").textContent,
+        tool:   document.getElementById("info-tool").textContent,
+        fabric: document.getElementById("info-fabric").textContent,
+        bom:    document.getElementById("info-bom").textContent
+      },
+      details,
+      total: Number(document.getElementById("supp-total").textContent)
+    };
+
+    try {
+      const res = await fetch("/supplement", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        alert("Lưu bù hàng thành công!");
+        window.location.href = "/";
+      } else {
+        throw new Error("Server trả lỗi");
+      }
+    } catch (err) {
+      console.error("submit supplement:", err);
+      alert("Lỗi khi lưu, thử lại.");
+    }
+  });
+
+  // Init QR-reader nếu ở supplement.html
   if (document.getElementById("qr-reader")) {
     initQrScanner();
   }
