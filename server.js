@@ -1,5 +1,3 @@
-// server.js (chỉ phần supplement)
-
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
@@ -11,75 +9,91 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 
 const app = express();
+const PORT = process.env.PORT || 3001;
+
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// POST /supplement
 app.post('/supplement', (req, res) => {
   try {
     const { rpro, metadata, details, total } = req.body;
+    const SUPP_PATH = path.join(__dirname, 'data', 'Supplement.xlsx');
+    const SHEET     = 'Supplement';
 
-    // 1) File và sheet
-    const BASE_DIR  = path.join(__dirname, 'data');
-    const SUPP_PATH = path.join(BASE_DIR, 'Supplement.xlsx');
-    const sheetName = 'Supplement';
-
-    // 2) Tạo header keys (chính là tên cột) và mới data array
-    const headerKeys = [
-      'RPRO',
-      'Giới tính',
-      'Mã khuôn',
-      'Mã dao',
-      'Tên vải',
-      'BOM',
-      'Total',
-      ...Object.keys(details).map(sz => `#${sz}`)
-    ];
-
-    // 3) Load existing data (nếu có) dưới dạng array of objects
-    let existing = [];
-    if (fs.existsSync(SUPP_PATH)) {
-      const wb = XLSX.readFile(SUPP_PATH);
-      const ws = wb.Sheets[sheetName];
-      if (ws) {
-        // range:1 để skip header row
-        existing = XLSX.utils.sheet_to_json(ws, {
-          header: headerKeys,
-          range: 1,       // bắt đầu lấy từ row2
-          defval: ''      // thay null/undefined bằng ''
-        });
-      }
+    if (!fs.existsSync(SUPP_PATH)) {
+      return res.status(500).json({ error: 'File Supplement.xlsx không tồn tại' });
     }
 
-    // 4) Tạo record mới (object)
-    const newRec = {
-      RPRO: rpro,
-      'Giới tính': metadata.gender,
-      'Mã khuôn': metadata.mold,
-      'Mã dao': metadata.tool,
-      'Tên vải': metadata.fabric,
-      BOM: metadata.bom,
-      Total: total
+    // 1) Mở workbook và sheet
+    const wb = XLSX.readFile(SUPP_PATH);
+    const ws = wb.Sheets[SHEET];
+    if (!ws) {
+      return res.status(500).json({ error: `Không tìm thấy sheet "${SHEET}"` });
+    }
+
+    // 2) Đọc header row (dòng 1)
+    const headerRow = XLSX.utils.sheet_to_json(ws, {
+      header: 1,
+      range: 0,    // chỉ row 0
+      raw: true
+    })[0];
+
+    // 3) Xác định chỉ số dòng mới
+    const dataRows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+    const newRowIndex = dataRows.length; // luôn bắt đầu từ dòng 2 trở đi (vì dòng 0 là tiêu đề)
+
+
+    // 4) Tạo map tên cột → giá trị
+    const cellMap = {
+      'RPRO':           rpro,
+      'PRO ODER':      rpro,       // nếu header cũ vẫn còn
+      'Giới tính':     metadata.gender,
+      'Mã khuôn':      metadata.mold,
+      'Mã dao':        metadata.tool,
+      'Tên vải':       metadata.fabric,
+      'FB DESCRIPTION':metadata.fabric,
+      'BOM':           metadata.bom,
+      'Total':         total,
+      'TOTAL':         total       // nếu có header viết hoa
     };
-    // thêm từng size
-    Object.keys(details).forEach(sz => {
-      newRec[`#${sz}`] = details[sz];
+
+    // 5) Ghi từng cell dựa lên headerRow
+    // Ghi từng cell vào dòng tiếp theo sau header
+    headerRow.forEach((hdr, colIdx) => {
+      let value;
+      if (cellMap.hasOwnProperty(hdr)) {
+        value = cellMap[hdr];
+      } else if (typeof hdr === 'string' && hdr.startsWith('#')) {
+        const sizeKey = hdr.slice(1);
+        value = details[sizeKey] || 0;
+      }
+
+      if (value !== undefined) {
+        const cellRef = XLSX.utils.encode_cell({ r: newRowIndex, c: colIdx });
+        ws[cellRef] = { v: value, t: typeof value === 'number' ? 'n' : 's' };
+      }
     });
 
-    // 5) Ghép lại mảng và chuyển thành worksheet
-    const allRecs = [ ...existing, newRec ];
-    const newWs   = XLSX.utils.json_to_sheet(allRecs, { header: headerKeys });
+    // Cập nhật vùng dữ liệu !ref thủ công theo dòng cuối mới
+    const finalCol = headerRow.length - 1;
+    ws['!ref'] = XLSX.utils.encode_range({
+      s: { r: 0, c: 0 },
+      e: { r: newRowIndex, c: finalCol }
+    });
 
-    // 6) Viết vào workbook
-    const newWb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(newWb, newWs, sheetName);
-    XLSX.writeFile(newWb, SUPP_PATH);
+
+        // 7) Lưu file
+    XLSX.writeFile(wb, SUPP_PATH);
 
     return res.json({ ok: true });
   } catch (err) {
-    console.error('❌ [SUPPLEMENT] Error saving:', err);
+    console.error('❌ [SUPPLEMENT] Error writing row:', err);
     return res.status(500).json({ error: err.message });
   }
 });
 
-app.listen(3001, () => console.log('Server running on 3001'));
+app.listen(PORT, () => {
+  console.log(`🚀 Server running at http://localhost:${PORT}`);
+});
