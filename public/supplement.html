@@ -11,10 +11,18 @@
 <body class="bg-gray-100 p-6">
 
   <div class="max-w-xl mx-auto bg-white p-4 rounded shadow">
-    <h1 class="text-xl font-bold mb-4">Bù hàng</h1>
+    <!-- Tiêu đề + nút quay về -->
+    <div class="flex items-center justify-between mb-4">
+      <h1 class="text-xl font-bold">Bù hàng</h1>
+      <button id="btn-back" 
+              class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-3 py-1 rounded">
+        ← Trang chủ
+      </button>
+    </div>
 
     <!-- Scan video -->
     <div id="qr-reader" class="mb-4"></div>
+
     <!-- Nhập tay -->
     <div class="mb-4">
       <input type="text" id="manualRpro" placeholder="Nhập RPRO" 
@@ -46,5 +54,15 @@
     </div>
   </div>
 
+  <script>
+    window.addEventListener("DOMContentLoaded", () => {
+      const btnBack = document.getElementById("btn-back");
+      if (btnBack) {
+        btnBack.addEventListener("click", () => {
+          window.location.href = "/";
+        });
+      }
+    });
+  </script>
 </body>
 </html>

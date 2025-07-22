@@ -196,9 +196,11 @@ async function searchProgress() {
   });
 
   try {
-    const res = await fetch('/powerapp.json', { cache: 'no-store' });
+    // → fetch và chỉ lấy mảng data
+    const res  = await fetch('/powerapp.json', { cache: 'no-store' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
+    const json = await res.json();
+    const data = json.data;
 
     const fields = [
       'PRO ODER', 'Brand Code', '#MOLD', 'BOM' ,'PU','FB', 'Total Qty', 'STATUS',
@@ -242,8 +244,6 @@ async function searchProgress() {
 
       return matchBasic && matchAdvanced;
     });
-
-
 
     if (filtered.length === 0) {
       container.innerHTML = `<div class="text-center py-4 text-red-500">Không tìm thấy dữ liệu khớp.</div>`;
@@ -292,6 +292,7 @@ async function searchProgress() {
 
 
 
+
 function clearProgressSearch() {
   progressSearchBox.value = '';
   container.innerHTML = '';
@@ -329,36 +330,36 @@ function shouldDisplayRow(d, isInitial) {
   detailsContainer.innerHTML = '<div class="text-center py-4">Loading chi tiết…</div>';
 
   try {
-    // 1) Lấy nguyên cả JSON
-    const res  = await fetch('/powerapp.json', { cache: 'no-store' });
+    // 1) Fetch và chỉ lấy mảng data
+    const res = await fetch('/powerapp.json', { cache: 'no-store' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
+    const json     = await res.json();
+    const fullData = json.data;
 
-    // 2) Xác định cột Plan / Actual và cột Verify (luôn từ JSON["Check"])
+    // 2) Xác định các cột Plan / Actual / Verify
     const planCol     = selectedSection === 'LEANLINE_DC'
       ? 'LEANLINE PLAN'
       : 'LAMINATION MACHINE (PLAN)';
     const realtimeCol = selectedSection === 'LEANLINE_DC'
       ? 'LEANLINE (REALTIME)'
       : 'LAMINATION MACHINE (REALTIME)';
-    // Cột cuối luôn lấy từ JSON["Check"], và sẽ hiển thị thành Verify
-    
     const verifyCol   = selectedSection === 'LEANLINE_DC'
       ? 'CheckLL'
       : 'Check';
 
-    // 3) Xác định statusKeys
-    const statusKeys = selectedSection === 'LEANLINE_DC'
-      ? ['5.LEAN LINE DC', '6.IN LEAN LINE DC']
-      : [`2.${selectedSection.toUpperCase()}`];
+    // 3) (Không dùng statusKeys ở đây vì chỉ hiển thị theo máy)
+    // const statusKeys = selectedSection === 'LEANLINE_DC'
+    //   ? ['5.LEAN LINE DC', '6.IN LEAN LINE DC']
+    //   : [`2.${selectedSection.toUpperCase()}`];
 
-    // 4) Lọc data theo máy và status
-    const rows = data.filter(row => row[planCol] === machine);
+    // 4) Lọc bản ghi cho máy hiện tại
+    const rows = fullData.filter(row => row[planCol] === machine);
 
     if (rows.length === 0) {
-      detailsContainer.innerHTML = `<div class="text-center py-4">
-        Không có dữ liệu cho máy ${machine}
-      </div>`;
+      detailsContainer.innerHTML = `
+        <div class="text-center py-4">
+          Không có dữ liệu cho máy ${machine}
+        </div>`;
       return;
     }
 
@@ -367,7 +368,7 @@ function shouldDisplayRow(d, isInitial) {
       'PRO ODER',
       'Brand Code',
       '#MOLD',
-      'Delay/Urgent',      // ← add this line
+      'Delay/Urgent',
       'Total Qty',
       'STATUS',
       'PU',
@@ -377,7 +378,8 @@ function shouldDisplayRow(d, isInitial) {
       realtimeCol,
       verifyCol
     ];
-    // 6) Xây đối tượng từ rows
+
+    // 6) Xây array details với STT và các trường đã chọn
     const details = rows.map((row, i) => {
       const obj = { STT: i + 1 };
       selectedColumns.forEach(col => {
@@ -385,54 +387,51 @@ function shouldDisplayRow(d, isInitial) {
       });
       return obj;
     });
-    // 6.1) Lọc “pending” vs show-all vs keyword
-const filtered = details.filter(d => {
-  // Lần đầu click: chỉ show các đơn pending (Actual Machine trống)
-  if (isInitial) {
-    return !(d[realtimeCol] || '').toString().trim();
-  }
-  // Sau khi bấm Tìm:
-  //  • Nếu chọn ALL hoặc không nhập keyword → show hết
-  if (rememberedField === 'ALL' || !rememberedKeyword.trim()) {
-    return true;
-  }
-  //  • Ngược lại: filter theo cột + keyword
-  return ('' + d[rememberedField])
-    .toUpperCase()
-    .includes(rememberedKeyword.trim().toUpperCase());
-});
 
+    // 7) Áp filter initial / tìm kiếm
+    const filtered = details.filter(d => {
+      if (isInitial) {
+        // initial: chỉ show các đơn chưa có Actual Machine
+        return !(d[realtimeCol] || '').toString().trim();
+      }
+      if (rememberedField === 'ALL' || !rememberedKeyword.trim()) {
+        return true;
+      }
+      return ('' + d[rememberedField])
+        .toUpperCase()
+        .includes(rememberedKeyword.trim().toUpperCase());
+    });
 
-    // 7) Tính % Verify
-    // Lọc ra chỉ những dòng có giá trị Boolean hoặc String “True”/“False”
+    // 8) Tính phần trăm Verify
     const validRows = details.filter(d =>
       d[verifyCol] === true  || d[verifyCol] === 'True'  ||
       d[verifyCol] === false || d[verifyCol] === 'False'
     );
-
-    const trueCount   = validRows.filter(d =>
+    const trueCount      = validRows.filter(d =>
       d[verifyCol] === true || d[verifyCol] === 'True'
     ).length;
+    const percentVerify  = validRows.length
+      ? ((trueCount / validRows.length) * 100).toFixed(1)
+      : '0.0';
 
-    const percentVerify = ((trueCount / validRows.length) * 100).toFixed(1);
-
-
-    // 8) Gán màu theo nhóm PU+FB
+    // 9) Gán màu nhóm theo PU + FB
     const palette = ['#fef08a','#a7f3d0','#fca5a5','#c4b5fd','#f9a8d4','#fde68a','#bfdbfe','#6ee7b7'];
     const groups = [...new Set(details.map(d => `${d.PU}_${d.FB}`))];
     const colorMap = {};
-    groups.forEach((g, idx) => colorMap[g] = palette[idx % palette.length]);
+    groups.forEach((g, idx) => {
+      colorMap[g] = palette[idx % palette.length];
+    });
 
-    // 9) Build HTML cho bảng
-    const headerDisplayMapWithPlan = {
+    // 10) Build HTML chi tiết
+    const headerMap = {
       ...headerDisplayMap,
-      [planCol]: 'Plan Machine',
+      [planCol]:     'Plan Machine',
       [realtimeCol]: 'Actual Machine',
       [verifyCol]:   'Verify'
     };
-    
-      let tbodyHTML = '';
-      filtered.forEach(d => {
+
+    let tbodyHTML = '';
+    filtered.forEach(d => {
       const bg = colorMap[`${d.PU}_${d.FB}`] || '';
       tbodyHTML += `<tr style="background-color:${bg}"><td class="border px-2 py-1">${d.STT}</td>`;
       selectedColumns.forEach(col => {
@@ -444,11 +443,10 @@ const filtered = details.filter(d => {
       tbodyHTML += '</tr>';
     });
 
-    const optionsHTML = selectedColumns
-      .map(opt => {
-        const sel = rememberedField === opt ? ' selected' : '';
-        return `<option value="${opt}"${sel}>${headerDisplayMapWithPlan[opt]||opt}</option>`;
-      }).join('');
+    const optionsHTML = selectedColumns.map(opt => {
+      const sel = rememberedField === opt ? ' selected' : '';
+      return `<option value="${opt}"${sel}>${headerMap[opt]||opt}</option>`;
+    }).join('');
 
     detailsContainer.innerHTML = `
       <div class="flex justify-between items-center mb-2">
@@ -467,12 +465,11 @@ const filtered = details.filter(d => {
           value="${rememberedKeyword}" class="border px-2 py-1 rounded col-span-2" />
         <div class="flex gap-2 col-span-1">
           <button id="detailsSearchBtn" class="bg-blue-600 text-white px-4 py-1 rounded w-full">Tìm</button>
-          <button id="detailsClearBtn" class="bg-gray-400 text-white px-4 py-1 rounded w-full">Xóa</button>
+          <button id="detailsClearBtn"  class="bg-gray-400 text-white px-4 py-1 rounded w-full">Xóa</button>
         </div>
       </div>
       <div class="overflow-auto max-h-[70vh]">
-         <table id="detailsTable" class="min-w-full table-fixed text-sm border border-gray-300 bg-white shadow">
-
+        <table id="detailsTable" class="min-w-full table-fixed text-sm border border-gray-300 bg-white shadow">
           <thead class="bg-gray-100 sticky top-0 z-10">
             <tr>
               <th class="border px-2 py-1">STT</th>
@@ -482,7 +479,7 @@ const filtered = details.filter(d => {
                   : (col==='FB DESCRIPTION'
                     ? ' max-w-[180px] break-words'
                     : '');
-                return `<th class="border px-2 py-1${extra}">${headerDisplayMapWithPlan[col]||col}</th>`;
+                return `<th class="border px-2 py-1${extra}">${headerMap[col]||col}</th>`;
               }).join('')}
             </tr>
           </thead>
@@ -491,7 +488,7 @@ const filtered = details.filter(d => {
       </div>
     `;
 
-    // 10) Gắn event tìm / xóa
+    // 11) Gắn event cho Tìm / Xóa
     document.getElementById('detailsSearchBtn')
       .addEventListener('click', () => {
         const f  = document.getElementById('detailsColumnSelect').value;
@@ -509,16 +506,6 @@ const filtered = details.filter(d => {
     detailsContainer.innerHTML = `<div class="text-red-500 text-center py-4">Lỗi tải dữ liệu</div>`;
   }
 }
-
-
-
-
-
-
-
-
-
-
 
 // -----------------------------------
 // --- REFRESH BUTTON (F5) ---
@@ -660,10 +647,13 @@ function renderSectionButtons() {
   renderSectionButtons();
 
   try {
+    // 1) Lấy JSON và chỉ lấy mảng data
     const res  = await fetch('/powerapp.json', { cache: 'no-store' });
-    const data = await res.json();
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    const data = json.data;
 
-    // 1) Xác định statusKeys
+    // 2) Xác định statusKeys
     let statusKeys;
     if (selectedSection === 'LEANLINE_DC') {
       statusKeys = ['5.LEAN LINE DC', '6.IN LEAN LINE DC'];
@@ -671,30 +661,28 @@ function renderSectionButtons() {
       statusKeys = [`2.${selectedSection.toUpperCase()}`];
     }
 
-    // 2) Chọn cột Plan Machine
+    // 3) Chọn cột Plan Machine
     const planKey = selectedSection === 'LEANLINE_DC'
       ? 'LEANLINE PLAN'
       : 'LAMINATION MACHINE (PLAN)';
 
-    // 3) Gom nhóm theo máy và tính tổng Qty + Sheet (DL PU)
-    const machines     = {};
-    const sheetCounts  = {};
+    // 4) Gom nhóm theo máy và tính tổng Qty + Sheet (DL PU)
+    const machines    = {};
+    const sheetCounts = {};
     data.forEach(row => {
-      const status   = (row['STATUS']     || '').toUpperCase();
-      const machine  = row[planKey];
-      const qty      = Number(row['Total Qty']) || 0;
-      const sheets   = Number(row['DL PU'])     || 0;
-
+      const status  = (row['STATUS'] || '').toUpperCase();
+      const machine = row[planKey];
+      const qty     = Number(row['Total Qty']) || 0;
+      const sheets  = Number(row['DL PU'])     || 0;
       if (statusKeys.includes(status) && machine) {
-        machines[machine]    = (machines[machine]    || 0) + qty;
-        // chỉ cộng sheets khi Lamination
+        machines[machine] = (machines[machine] || 0) + qty;
         if (selectedSection === 'LAMINATION') {
           sheetCounts[machine] = (sheetCounts[machine] || 0) + sheets;
         }
       }
     });
 
-    // 4) Build HTML bảng Summary
+    // 5) Build HTML bảng Summary
     let html = `
       <table class="min-w-full text-sm border border-gray-300 bg-white shadow">
         <thead class="bg-gray-100">
@@ -710,25 +698,23 @@ function renderSectionButtons() {
         <tbody>
     `;
 
-    let totalQty    = 0;
-    let totalSheets = 0;
+    let totalQty         = 0;
+    let totalSheets      = 0;
     let totalDelayUrgent = 0;
 
     Object.keys(machines).sort().forEach(machine => {
-      const qty    = machines[machine];
-      const sh     = sheetCounts[machine] || 0;
-      totalQty    += qty;
-      totalSheets += sh;
+      const qty   = machines[machine];
+      const sh    = sheetCounts[machine] || 0;
       const duQty = getDelayUrgentQty(machine, data);
-      totalDelayUrgent += duQty;
-
+      totalQty        += qty;
+      totalSheets     += sh;
+      totalDelayUrgent+= duQty;
 
       html += `
         <tr class="hover:bg-gray-50 cursor-pointer" data-machine="${machine}">
           <td class="px-6 py-3 text-sm text-gray-700">${machine}</td>
           <td class="px-6 py-3 text-sm text-gray-900 text-right">${formatNumber(qty)}</td>
           <td class="px-6 py-3 text-sm text-right text-red-600 font-semibold">${formatNumber(duQty)}</td>
-
           ${selectedSection === 'LAMINATION'
             ? `<td class="px-6 py-3 text-sm text-gray-900 text-right">${formatNumber(sh)}</td>`
             : ''}
@@ -742,19 +728,17 @@ function renderSectionButtons() {
           <td class="px-6 py-3 text-sm text-gray-700 text-right">Tổng cộng:</td>
           <td class="px-6 py-3 text-sm text-gray-900 text-right">${formatNumber(totalQty)}</td>
           <td class="px-6 py-3 text-sm text-right text-red-600 font-semibold">${formatNumber(totalDelayUrgent)}</td>
-
-
           ${selectedSection === 'LAMINATION'
             ? `<td class="px-6 py-3 text-sm text-gray-900 text-right">${formatNumber(totalSheets)}</td>`
             : ''}
         </tr>
       </tbody>
-    </table>
+      </table>
     `;
 
     container.innerHTML = html;
 
-    // 5) Bắt event click để show detail
+    // 6) Bắt event click để show detail
     container.querySelectorAll('tbody tr[data-machine]').forEach(row =>
       row.addEventListener('click', () => {
         const m = row.getAttribute('data-machine');
@@ -773,6 +757,7 @@ function renderSectionButtons() {
     setBtnLoading(btnSummary, false);
   }
 }
+
 
 
 
@@ -899,12 +884,16 @@ function formatExcelDate(serial) {
 
 
 function loadDelayUrgentData(type) {
-  fetch('/powerapp.json')
-    .then(res => res.json())
-    .then(data => {
-      const keyword       = delaySearchBox.value.trim().toLowerCase();
-      const selectedField = delayColumnSelect.value;
-      const errorOnly     = delayErrorOnly.checked;
+  fetch('/powerapp.json', { cache: 'no-store' })
+    .then(res => {
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    })
+    .then(json => {
+      const data           = json.data;  
+      const keyword        = delaySearchBox.value.trim().toLowerCase();
+      const selectedField  = delayColumnSelect.value;
+      const errorOnly      = delayErrorOnly.checked;
 
       // Lọc theo điều kiện nâng cao
       const inputs  = document.querySelectorAll('.delay-input');
@@ -957,20 +946,21 @@ function loadDelayUrgentData(type) {
       let html = `
         <table class="min-w-full text-sm text-left border">
           <thead class="bg-gray-200">
-            <tr>${headers.map(h => `<th class="px-2 py-1 border">${h}</th>`).join('')}</tr>
+            <tr>${headers
+              .map(h => `<th class="px-2 py-1 border">${h}</th>`)
+              .join('')}
+            </tr>
           </thead>
           <tbody>
       `;
       html += filtered.map((row, i) => {
         const status    = row['STATUS'] || '';
-        // Nếu không ở chế độ errorOnly mà status lỗi → tô đỏ
         const highlight = (!errorOnly && status !== '7.PACKING' && status !== '9.STORED')
                           ? 'bg-red-100'
                           : '';
-
         return `
           <tr class="${highlight}">
-            <td class="border px-2 py-1">${i+1}</td>
+            <td class="border px-2 py-1">${i + 1}</td>
             <td class="border px-2 py-1">${row['PRO ODER']    || ''}</td>
             <td class="border px-2 py-1">${row['Brand Code']  || ''}</td>
             <td class="border px-2 py-1">${row['#MOLDED']      || ''}</td>
@@ -997,6 +987,7 @@ function loadDelayUrgentData(type) {
         '<div class="text-red-500 p-4">Không tải được dữ liệu</div>';
     });
 }
+
 
 // Sau khi định nghĩa hàm, đừng quên gắn sự kiện để khi check/uncheck “Chỉ lỗi” lại load lại bảng:
 delayErrorOnly.addEventListener('change', () => {
