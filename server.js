@@ -19,78 +19,67 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.post('/supplement', (req, res) => {
   try {
     const { rpro, metadata, details, total } = req.body;
-    const SUPP_PATH = path.join(__dirname, 'data', 'Supplement.xlsx');
-    const SHEET     = 'Supplement';
+    const BASE_DIR  = path.join(__dirname, 'data');
+    const FILE_PATH = path.join(BASE_DIR, 'Supplement.xlsx');
+    const SHEETNAME = 'Supplement';
 
-    if (!fs.existsSync(SUPP_PATH)) {
-      return res.status(500).json({ error: 'File Supplement.xlsx không tồn tại' });
+    const workbook = XLSX.readFile(FILE_PATH);
+    const ws = workbook.Sheets[SHEETNAME];
+
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    const headerRow = [];
+    for (let c = range.s.c; c <= range.e.c; c++) {
+      const cellAddr = XLSX.utils.encode_cell({ r: 0, c });
+      const cell = ws[cellAddr];
+      headerRow.push(cell?.v || '');
     }
 
-    // 1) Mở workbook và sheet
-    const wb = XLSX.readFile(SUPP_PATH);
-    const ws = wb.Sheets[SHEET];
-    if (!ws) {
-      return res.status(500).json({ error: `Không tìm thấy sheet "${SHEET}"` });
+    // ✅ Tìm dòng trống đầu tiên ở cột A (cột RPRO)
+    let rowToWrite = 1; // bắt đầu từ dòng 2 (index 1)
+    while (true) {
+      const cellA = ws[XLSX.utils.encode_cell({ r: rowToWrite, c: 0 })];
+      if (!cellA || !cellA.v) break;
+      rowToWrite++;
     }
 
-    // 2) Đọc header row (dòng 1)
-    const headerRow = XLSX.utils.sheet_to_json(ws, {
-      header: 1,
-      range: 0,    // chỉ row 0
-      raw: true
-    })[0];
-
-    // 3) Xác định chỉ số dòng mới
-    const dataRows = XLSX.utils.sheet_to_json(ws, { header: 1 });
-    const newRowIndex = dataRows.length; // luôn bắt đầu từ dòng 2 trở đi (vì dòng 0 là tiêu đề)
-
-
-    // 4) Tạo map tên cột → giá trị
+    // ✅ Tạo object map giá trị theo tên cột
     const cellMap = {
-      'RPRO':           rpro,
-      'PRO ODER':      rpro,       // nếu header cũ vẫn còn
-      'Giới tính':     metadata.gender,
-      'Mã khuôn':      metadata.mold,
-      'Mã dao':        metadata.tool,
-      'Tên vải':       metadata.fabric,
-      'FB DESCRIPTION':metadata.fabric,
-      'BOM':           metadata.bom,
-      'Total':         total,
-      'TOTAL':         total       // nếu có header viết hoa
+      'RPRO': rpro,
+      'Giới tính': metadata.gender,
+      'Mã khuôn': metadata.mold,
+      'Mã dao': metadata.tool,
+      'Tên vải': metadata.fabric,
+      'BOM': metadata.bom,
+      'Total': total
     };
 
-    // 5) Ghi từng cell dựa lên headerRow
-    // Ghi từng cell vào dòng tiếp theo sau header
     headerRow.forEach((hdr, colIdx) => {
-      let value;
+      let val = '';
       if (cellMap.hasOwnProperty(hdr)) {
-        value = cellMap[hdr];
+        val = cellMap[hdr];
       } else if (typeof hdr === 'string' && hdr.startsWith('#')) {
-        const sizeKey = hdr.slice(1);
-        value = details[sizeKey] || 0;
+        const size = hdr.slice(1); // bỏ dấu #
+        val = details[size] || 0;
       }
 
-      if (value !== undefined) {
-        const cellRef = XLSX.utils.encode_cell({ r: newRowIndex, c: colIdx });
-        ws[cellRef] = { v: value, t: typeof value === 'number' ? 'n' : 's' };
-      }
+      const cellRef = XLSX.utils.encode_cell({ r: rowToWrite, c: colIdx });
+      ws[cellRef] = { t: typeof val === 'number' ? 'n' : 's', v: val };
     });
 
-    // Cập nhật vùng dữ liệu !ref thủ công theo dòng cuối mới
-    const finalCol = headerRow.length - 1;
-    ws['!ref'] = XLSX.utils.encode_range({
+    // ✅ Cập nhật lại vùng dữ liệu
+    const newRange = {
       s: { r: 0, c: 0 },
-      e: { r: newRowIndex, c: finalCol }
-    });
+      e: { r: rowToWrite, c: headerRow.length - 1 }
+    };
+    ws['!ref'] = XLSX.utils.encode_range(newRange);
 
+    // ✅ Ghi file lại
+    XLSX.writeFile(workbook, FILE_PATH);
+    res.status(200).json({ ok: true });
 
-        // 7) Lưu file
-    XLSX.writeFile(wb, SUPP_PATH);
-
-    return res.json({ ok: true });
   } catch (err) {
-    console.error('❌ [SUPPLEMENT] Error writing row:', err);
-    return res.status(500).json({ error: err.message });
+    console.error('❌ [SUPPLEMENT] Ghi file lỗi:', err);
+    res.status(500).json({ error: err.message });
   }
 });
 
