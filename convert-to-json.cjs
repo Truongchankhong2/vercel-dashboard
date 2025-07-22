@@ -1,44 +1,28 @@
-// convert-to-json.cjs
-// Chạy: node convert-to-json.cjs
-// → public/powerapp.json sẽ chứa { headers: [...], data: [...] }
-
 const XLSX = require('xlsx');
 const fs   = require('fs');
-const path = require('path');
 
-const wb = XLSX.readFile(path.join(__dirname, 'data', 'Powerapp.xlsx'));
-const sheetName = wb.SheetNames[0];
-const ws        = wb.Sheets[sheetName];
+// 1. Đọc file Excel
+const wb = XLSX.readFile('./data/Powerapp.xlsx');
+const sheetName = wb.SheetNames[0]; // sheet đầu tiên
+const ws = wb.Sheets[sheetName];
 
-// 1) Đọc toàn bộ sheet thành array-of-arrays
-const all = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
+// 2. Chuyển thành mảng 2 chiều
+const data2D = XLSX.utils.sheet_to_json(ws, { header: 1 });
 
-// 2) Tìm row header (có STT + PRO ODER)
-let hdrIdx = all.findIndex(r => r.includes("STT") && r.includes("PRO ODER"));
-if (hdrIdx < 0) {
-  console.warn("Không tìm thấy header row, dùng row 0");
-  hdrIdx = 0;
-}
+// 3. Dòng đầu tiên là header
+const rawHeaders = data2D[0] || [];
+const headers = rawHeaders.map(h => (typeof h === 'string' ? h.replace(/^#/, '').trim() : ''));
 
-// 3) Lấy rawHeader và chuẩn hóa thành header array
-const rawHeader = all[hdrIdx];
-const headers = rawHeader.map((h, i) => {
-  const txt = (h||"").toString().trim();
-  return txt !== "" ? txt : `col${i}`;
+// 4. Chuyển từng dòng thành object theo headers
+const data = data2D.slice(1).map(row => {
+  const obj = {};
+  headers.forEach((h, idx) => {
+    obj[h] = row[idx];
+  });
+  return obj;
 });
 
-// 4) Đọc lại sheet thành JSON, ép theo headers, bắt đầu từ dòng data
-const jsonData = XLSX.utils.sheet_to_json(ws, {
-  header: headers,
-  defval: "",
-  range: hdrIdx + 1
-});
+// 5. Ghi ra file powerapp.json
+fs.writeFileSync('./public/powerapp.json', JSON.stringify({ headers, data }, null, 2), 'utf-8');
 
-// 5) Xuất ra public/powerapp.json
-const outPath = path.join(__dirname, 'public', 'powerapp.json');
-fs.writeFileSync(
-  outPath,
-  JSON.stringify({ headers, data: jsonData }, null, 2),
-  'utf-8'
-);
-console.log(`Đã xuất ${jsonData.length} dòng → ${outPath}`);
+console.log(`✅ Chuyển đổi thành công! Đã tạo: public/powerapp.json`);
