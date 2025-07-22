@@ -49,9 +49,9 @@ async function loadOrderInfo(rpro) {
   }
 }
 
-// 4) Vẽ thông tin đơn và bảng size
+// 4) Vẽ thông tin đơn và bảng size dùng số thứ tự
 function renderOrder(r) {
-  // Metadata
+  // Hiển thị metadata
   document.getElementById("info-rpro").textContent   = r["PRO ODER"]   || "";
   document.getElementById("info-gender").textContent = r["Giới tính"]   || r["Gender"] || "";
   document.getElementById("info-mold").textContent   = r["#MOLD"]      || "";
@@ -60,34 +60,36 @@ function renderOrder(r) {
   document.getElementById("info-bom").textContent    = r["BOM"]        || "";
   document.getElementById("order-info").classList.remove("hidden");
 
-  // Xác định cột Size: từ sau "CheckLL"
-  const allKeys = Object.keys(r);
-  const idx     = allKeys.indexOf("CheckLL");
-  const sizeKeys = idx >= 0
-    ? allKeys.slice(idx + 1)
-    : allKeys.filter(k => /^#\d+(\.\d+)?$/.test(k));
+  // Lấy các cột sau "CheckLL"
+  const keys   = Object.keys(r);
+  const idx    = keys.indexOf("CheckLL");
+  const cols   = idx >= 0 ? keys.slice(idx + 1) : [];
 
-  // Build bảng
-  let html = `<table class="min-w-full border border-gray-300">`;
-  html += `<thead class="bg-gray-100"><tr>
-    <th class="border px-2 py-1">Size</th>
+  // Build bảng với nhãn thứ tự
+  let html = `<table class="min-w-full border border-gray-300"><thead class="bg-gray-100"><tr>
+    <th class="border px-2 py-1">#</th>
     <th class="border px-2 py-1">Số thiếu</th>
     <th class="border px-2 py-1">Số lượng</th>
   </tr></thead><tbody>`;
-  sizeKeys.forEach(size => {
-    const missing = Number(r[size]) || 0;
+
+  cols.forEach((colKey, i) => {
+    const missing = Number(r[colKey]) || 0;
+    const label   = i + 1;
     html += `<tr>
-      <td class="border px-2 py-1">${size}</td>
-      <td class="border px-2 py-1">${missing}</td>
-      <td class="border px-2 py-1">
+      <td class="border px-2 py-1 text-center">${label}</td>
+      <td class="border px-2 py-1 text-center">${missing}</td>
+      <td class="border px-2 py-1 text-center">
         <input
-          type="number" min="0" value="0"
-          class="w-16 px-1 py-0.5 input-supp"
-          data-size="${size}"
+          type="number"
+          min="0"
+          value="0"
+          data-index="${i}"
+          class="w-16 input-supp"
         />
       </td>
     </tr>`;
   });
+
   html += `</tbody><tfoot class="bg-gray-50">
     <tr>
       <td class="border px-2 py-1 font-bold">TOTAL</td>
@@ -108,24 +110,24 @@ function renderOrder(r) {
   document.getElementById("btn-confirm-supplement").disabled = false;
 }
 
-// 5) Tính tổng số lượng
+// 5) Tính tổng các ô input
 function updateTotal() {
   const sum = [...document.querySelectorAll(".input-supp")]
     .reduce((acc, i) => acc + Number(i.value || 0), 0);
   document.getElementById("supp-total").textContent = sum;
 }
 
-// 6) Bind các sự kiện chỉ khi DOM đã load xong
+// 6) Bind event và khởi scanner khi DOM sẵn sàng
 window.addEventListener("DOMContentLoaded", () => {
   // Nút Bù hàng trên index.html
-  const btnSupplement = document.getElementById("btn-supplement");
-  if (btnSupplement) {
-    btnSupplement.addEventListener("click", () => {
+  const btnSupp = document.getElementById("btn-supplement");
+  if (btnSupp) {
+    btnSupp.addEventListener("click", () => {
       window.location.href = "/supplement.html";
     });
   }
 
-  // Nút OK khi nhập tay
+  // Nút OK khi nhập tay RPRO
   const btnManual = document.getElementById("btn-manual-ok");
   if (btnManual) {
     btnManual.addEventListener("click", () => {
@@ -138,10 +140,13 @@ window.addEventListener("DOMContentLoaded", () => {
   const btnConfirm = document.getElementById("btn-confirm-supplement");
   if (btnConfirm) {
     btnConfirm.addEventListener("click", async () => {
+      // Thu dữ liệu theo index
       const details = {};
-      document.querySelectorAll(".input-supp").forEach(i => {
-        details[i.dataset.size] = Number(i.value) || 0;
+      document.querySelectorAll(".input-supp").forEach(inp => {
+        const idx   = inp.dataset.index;
+        details[idx] = Number(inp.value) || 0;
       });
+
       const payload = {
         rpro: currentRpro,
         metadata: {
@@ -174,7 +179,7 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Khởi QR-reader nếu đang ở supplement.html
+  // Nếu đang ở trang supplement.html, khởi QR-reader
   if (document.getElementById("qr-reader")) {
     initQrScanner();
   }
