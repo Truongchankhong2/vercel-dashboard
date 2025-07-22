@@ -1,9 +1,9 @@
 // public/supplement.js
 
 let currentRpro = null;
-let orderRecord = null;
+let headersArr  = [];
 
-// 1) Khởi động QR-reader (và ẩn nếu không có camera)
+// 1) Khởi động QR-reader (ẩn nếu không có camera)
 function initQrScanner() {
   const qrContainer = document.getElementById("qr-reader");
   if (!qrContainer) return;
@@ -17,7 +17,7 @@ function initQrScanner() {
       handleScanned(decodedText);
     },
     err => {
-      // ignore frame decode errors
+      // ignore per-frame decode errors
     }
   ).catch(e => {
     console.warn("QR scanner unavailable:", e);
@@ -32,26 +32,26 @@ function handleScanned(text) {
   loadOrderInfo(rpro);
 }
 
-// 3) Load dữ liệu đơn từ public/powerapp.json
+// 3) Fetch powerapp.json, lưu headers và tìm record
 async function loadOrderInfo(rpro) {
   currentRpro = rpro;
   try {
     const res  = await fetch("/powerapp.json", { cache: "no-store" });
-    const data = await res.json();
-    const rec  = data.find(r => (r["PRO ODER"] || "") === rpro);
+    const { headers, data } = await res.json();
+    headersArr = headers;
+    const rec = data.find(r => (r["PRO ODER"]||"") === rpro);
     if (!rec) {
       alert("Không tìm thấy đơn " + rpro);
       return;
     }
-    orderRecord = rec;
     renderOrder(rec);
   } catch (err) {
-    console.error(err);
-    alert("Lỗi khi tải dữ liệu, thử lại sau.");
+    console.error("loadOrderInfo:", err);
+    alert("Lỗi khi tải dữ liệu, vui lòng thử lại.");
   }
 }
 
-// 4) Vẽ thông tin đơn và bảng size
+// 4) Vẽ metadata và bảng size, với header đã hoán vị
 function renderOrder(r) {
   // 4.1) Metadata
   document.getElementById("info-rpro").textContent   = r["PRO ODER"]   || "";
@@ -62,44 +62,39 @@ function renderOrder(r) {
   document.getElementById("info-bom").textContent    = r["BOM"]        || "";
   document.getElementById("order-info").classList.remove("hidden");
 
-  // 4.2) Xác định key size: từ sau "CheckLL" hoặc fallback numeric
-  const allKeys = Object.keys(r);
-  const idx     = allKeys.findIndex(k => /^check\s*ll$/i.test(k));
-  let sizeKeys  = idx >= 0
-    ? allKeys.slice(idx + 1)
-    : allKeys.filter(k => /^(\d+(\.\d+)?)$/.test(k));
+  // 4.2) Xác định sizeKeys: header sau "CheckLL"
+  const idx = headersArr.indexOf("CheckLL");
+  let sizeKeys = idx >= 0
+    ? headersArr.slice(idx + 1)
+    : headersArr.filter(h => /^\d+(\.\d+)?$/.test(h));
 
-  // 4.3) Sắp xếp theo số học
-  sizeKeys.sort((a, b) => parseFloat(a) - parseFloat(b));
-
-  // 4.4) Build bảng HTML
+  // 4.3) Build bảng với header đã đổi
   let html = `
     <table class="min-w-full border border-gray-300">
       <thead class="bg-gray-100">
         <tr>
-          <th class="border px-2 py-1">#</th>
-          <th class="border px-2 py-1">Số thiếu</th>
-          <th class="border px-2 py-1">Số lượng</th>
+          <th class="border px-2 py-1">Size</th>
+          <th class="border px-2 py-1">Số lượng</th>   <!-- đã hoán vị -->
+          <th class="border px-2 py-1">Số thiếu</th>   <!-- đã hoán vị -->
         </tr>
       </thead>
       <tbody>
   `;
-  sizeKeys.forEach((colKey, i) => {
-    const missing = Number(r[colKey]) || 0;
-    const label   = i + 1;
+  sizeKeys.forEach(size => {
+    const missing = Number(r[size]) || 0;
     html += `
       <tr>
-        <td class="border px-2 py-1 text-center">${label}</td>
-        <td class="border px-2 py-1 text-center">${missing}</td>
+        <td class="border px-2 py-1 text-center">${size}</td>
         <td class="border px-2 py-1 text-center">
           <input
             type="number"
             min="0"
             value="0"
-            data-index="${i}"
+            data-size="${size}"
             class="w-16 input-supp"
           />
         </td>
+        <td class="border px-2 py-1 text-center">${missing}</td>
       </tr>
     `;
   });
@@ -108,7 +103,8 @@ function renderOrder(r) {
       <tfoot class="bg-gray-50">
         <tr>
           <td class="border px-2 py-1 font-bold">TOTAL</td>
-          <td colspan="2" class="border px-2 py-1 font-bold" id="supp-total">0</td>
+          <td class="border px-2 py-1 font-bold" id="supp-total">0</td>
+          <td class="border px-2 py-1"></td>
         </tr>
       </tfoot>
     </table>
@@ -118,23 +114,23 @@ function renderOrder(r) {
   container.innerHTML = html;
   container.classList.remove("hidden");
 
-  // 4.5) Bắt event tính tổng
+  // 4.4) Bắt event tính tổng
   document.querySelectorAll(".input-supp").forEach(inp => {
     inp.addEventListener("input", updateTotal);
   });
   document.getElementById("btn-confirm-supplement").disabled = false;
 }
 
-// 5) Cập nhật tổng
+// 5) Cập nhật tổng (trên cột "Số lượng")
 function updateTotal() {
   const sum = [...document.querySelectorAll(".input-supp")]
     .reduce((acc, inp) => acc + Number(inp.value || 0), 0);
   document.getElementById("supp-total").textContent = sum;
 }
 
-// 6) Bind event & init QR khi DOM sẵn sàng
+// 6) Bind sự kiện & init QR-reader khi DOM sẵn sàng
 window.addEventListener("DOMContentLoaded", () => {
-  // Nút Bù hàng trên index.html
+  // Nút Bù hàng (index.html)
   const btnSupp = document.getElementById("btn-supplement");
   if (btnSupp) {
     btnSupp.addEventListener("click", () => {
@@ -142,7 +138,7 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Nút OK nhập tay
+  // Nút OK nhập tay (supplement.html)
   const btnManual = document.getElementById("btn-manual-ok");
   if (btnManual) {
     btnManual.addEventListener("click", () => {
@@ -150,13 +146,14 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Nút Xác nhận
+  // Nút Xác nhận bù hàng
   const btnConfirm = document.getElementById("btn-confirm-supplement");
   if (btnConfirm) {
     btnConfirm.addEventListener("click", async () => {
+      // Thu chi tiết theo data-size
       const details = {};
       document.querySelectorAll(".input-supp").forEach(inp => {
-        details[inp.dataset.index] = Number(inp.value) || 0;
+        details[inp.dataset.size] = Number(inp.value) || 0;
       });
 
       const payload = {
@@ -185,13 +182,13 @@ window.addEventListener("DOMContentLoaded", () => {
           throw new Error("Server trả lỗi");
         }
       } catch (err) {
-        console.error(err);
+        console.error("submit supplement:", err);
         alert("Lỗi khi lưu, thử lại.");
       }
     });
   }
 
-  // Init QR-reader nếu có
+  // Nếu ở supplement.html, khởi QR-reader
   if (document.getElementById("qr-reader")) {
     initQrScanner();
   }
