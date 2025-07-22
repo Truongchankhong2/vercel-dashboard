@@ -74,8 +74,8 @@ function renderOrder(r) {
       <thead class="bg-gray-100">
         <tr>
           <th class="border px-2 py-1">Size</th>
-          <th class="border px-2 py-1">Số lượng</th>   <!-- giờ là ô nhập -->
-          <th class="border px-2 py-1">Số thiếu</th>   <!-- giờ là ô hiển thị missing -->
+          <th class="border px-2 py-1">Số thiếu</th>   <!-- giờ là ô nhập -->
+          <th class="border px-2 py-1">PO Quantity</th>   <!-- giờ là ô hiển thị missing -->
         </tr>
       </thead>
       <tbody>
