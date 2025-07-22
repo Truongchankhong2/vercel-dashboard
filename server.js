@@ -3,8 +3,8 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { writeFileSync, unlinkSync } from 'fs';
-import { execSync } from 'child_process';
+import fs from 'fs';
+import XLSX from 'xlsx';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
@@ -17,20 +17,22 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Serve index
+// Serve index.html
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/index.html'));
 });
 
-// Supplement route – ghi supplement trực tiếp vào Excel COM
+// POST /supplement — lưu Supplement lên Supplement.xlsx
 app.post('/supplement', (req, res) => {
   try {
     const { rpro, metadata, details, total } = req.body;
-    const BASE_DIR    = path.join(__dirname, 'data');
-    const SUPP_PATH   = path.join(BASE_DIR, 'Supplement.xlsx');
-    const sheetName   = 'Supplement';
 
-    // 1) Mở workbook nếu có, hoặc tạo mới
+    // Đường dẫn tới file Supplement.xlsx (tạo mới nếu chưa có)
+    const BASE_DIR  = path.join(__dirname, 'data');
+    const SUPP_PATH = path.join(BASE_DIR, 'Supplement.xlsx');
+    const sheetName = 'Supplement';
+
+    // 1) Mở workbook nếu tồn tại, hoặc tạo mới
     let wb;
     if (fs.existsSync(SUPP_PATH)) {
       wb = XLSX.readFile(SUPP_PATH);
@@ -38,10 +40,9 @@ app.post('/supplement', (req, res) => {
       wb = XLSX.utils.book_new();
     }
 
-    // 2) Lấy hoặc tạo sheet
+    // 2) Lấy hoặc tạo sheet "Supplement"
     let ws = wb.Sheets[sheetName];
     if (!ws) {
-      // Header mặc định
       const header = [
         'RPRO',
         'Giới tính',
@@ -50,13 +51,13 @@ app.post('/supplement', (req, res) => {
         'Tên vải',
         'BOM',
         'Total',
-        ...Object.keys(details)
+        ...Object.keys(details)  // tên các cột size
       ];
       ws = XLSX.utils.aoa_to_sheet([header]);
       XLSX.utils.book_append_sheet(wb, ws, sheetName);
     }
 
-    // 3) Đọc sheet thành 2D-array, thêm dòng mới
+    // 3) Đọc sheet thành mảng 2D và append row mới
     const data2D = XLSX.utils.sheet_to_json(ws, { header: 1 });
     const newRow = [
       rpro,
@@ -70,17 +71,18 @@ app.post('/supplement', (req, res) => {
     ];
     data2D.push(newRow);
 
-    // 4) Ghi lại sheet và save
+    // 4) Ghi lại sheet và lưu file
     wb.Sheets[sheetName] = XLSX.utils.aoa_to_sheet(data2D);
     XLSX.writeFile(wb, SUPP_PATH);
 
-    return res.status(200).json({ ok: true });
+    return res.json({ ok: true });
   } catch (err) {
     console.error('❌ [SUPPLEMENT] Error saving to Supplement.xlsx:', err);
     return res.status(500).json({ error: err.message });
   }
 });
 
+// Start server
 app.listen(PORT, () => {
   console.log(`🚀 Server running at http://localhost:${PORT}`);
 });
