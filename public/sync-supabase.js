@@ -76,7 +76,8 @@ async function syncToExcel() {
       D: row.tool || '',
       E: row.fabric || '',
       F: row.bom || '',
-      G: row.total || 0
+      G: row.total || 0,
+      H: row.created_at || ''
     };
 
     // Gán size
