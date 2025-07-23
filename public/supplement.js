@@ -38,7 +38,6 @@ function handleScanned(text) {
 // 3. Tải dữ liệu từ powerapp.json và Supabase
 async function loadOrderInfo(rpro) {
   currentRpro = rpro;
-  // 👉 Hiện thông báo loading
   const loadingEl = document.getElementById("loading-status");
   if (loadingEl) loadingEl.classList.remove("hidden");
 
@@ -50,10 +49,26 @@ async function loadOrderInfo(rpro) {
     const rec = data.find(r => (r["PRO ODER"] || "") === rpro);
     if (!rec) {
       alert("Không tìm thấy đơn " + rpro);
-      if (loadingEl) loadingEl.classList.add("hidden");
       return;
     }
 
+    // 👉 Check Giới tính + sizefix
+    const gender = rec["Giới tính"] || rec["GENDER"] || "";
+    let useSizeFix = false;
+    let sizeFix = {};
+
+    if (gender === "Women's") {
+      try {
+        const resFix = await fetch("/sizefix.json");
+        const sizefixData = await resFix.json();
+        sizeFix = sizefixData[rpro] || {};
+        useSizeFix = Object.keys(sizeFix).length > 0;
+      } catch (err) {
+        console.warn("Không thể tải sizefix.json:", err);
+      }
+    }
+
+    // 👉 Lấy data cũ đã nhập
     const { data: existingRows } = await supabase
       .from('supplement')
       .select('*')
@@ -61,40 +76,17 @@ async function loadOrderInfo(rpro) {
       .limit(1);
 
     const existingData = (existingRows && existingRows.length > 0) ? existingRows[0] : null;
-    renderOrder(rec, existingData);
+
+    // 👉 Gọi render đầy đủ
+    renderOrder(rec, existingData, useSizeFix, sizeFix);
   } catch (err) {
     console.error("loadOrderInfo:", err);
     alert("Lỗi khi tải dữ liệu, vui lòng thử lại.");
   } finally {
-    // 👉 Ẩn thông báo loading
     if (loadingEl) loadingEl.classList.add("hidden");
   }
-  try {
-    const res = await fetch("/powerapp.json", { cache: "no-store" });
-    const { headers, data } = await res.json();
-    headersArr = headers;
-
-    const rec = data.find(r => (r["PRO ODER"] || "") === rpro);
-    if (!rec) {
-      alert("Không tìm thấy đơn " + rpro);
-      return;
-    }
-
-    // ✅ Tìm dữ liệu đã từng nhập trên Supabase
-    const { data: existingRows } = await supabase
-      .from('supplement')
-      .select('*')
-      .eq('rpro', rpro)
-      .limit(1);
-
-    const existingData = (existingRows && existingRows.length > 0) ? existingRows[0] : null;
-
-    renderOrder(rec, existingData);
-  } catch (err) {
-    console.error("loadOrderInfo:", err);
-    alert("Lỗi khi tải dữ liệu, vui lòng thử lại.");
-  }
 }
+
 
 // 4. Render form size + metadata
 function renderOrder(r, existingData = null) {
