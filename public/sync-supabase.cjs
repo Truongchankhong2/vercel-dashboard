@@ -1,6 +1,7 @@
-import { createClient } from '@supabase/supabase-js';
-import XLSX from 'xlsx';
-import fs from 'fs';
+// ✅ Sử dụng require thay vì import
+const { createClient } = require('@supabase/supabase-js');
+const XLSX = require('xlsx');
+const fs = require('fs');
 const { DateTime } = require("luxon");
 // === 1. Khai báo Supabase ===
 const supabase = createClient(
