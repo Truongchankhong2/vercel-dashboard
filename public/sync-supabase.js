@@ -77,7 +77,7 @@ async function syncToExcel() {
       E: row.fabric || '',
       F: row.bom || '',
       G: row.total || 0,
-      H: row.created_at || ''
+      H: createdAtVn.toLocaleString('vi-VN') // Format giờ Việt
     };
 
     // Gán size
