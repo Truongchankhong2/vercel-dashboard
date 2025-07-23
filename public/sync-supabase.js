@@ -69,6 +69,9 @@ async function syncToExcel() {
     }
 
   for (const row of data) {
+    const createdAtUtc = new Date(row.created_at);
+    const createdAtVn = new Date(createdAtUtc.getTime() + 7 * 60 * 60 * 1000); // cộng 7 tiếng
+
     const rowData = {
       A: row.rpro || '',
       B: row.gender || '',
@@ -77,9 +80,8 @@ async function syncToExcel() {
       E: row.fabric || '',
       F: row.bom || '',
       G: row.total || 0,
-      H: createdAtVn.toLocaleString('vi-VN') // Format giờ Việt
+      H: createdAtVn.toLocaleString('vi-VN')  // ✅ giờ VN hiển thị đẹp
     };
-
     // Gán size
     excelSizeList.forEach((size, idx) => {
       const key = `size_${size.replace('.', '_')}`;
