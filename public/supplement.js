@@ -2,42 +2,28 @@ import { supabase } from './supabaseClient.js';
 
 let currentRpro = null;
 let headersArr = [];
+let useSizeFix = false;
+let rawRecord = null;
+let sizeFixData = null;
 
-// 👉 Chuyển "7.5" → "size_7_5"
+// 👉 Chuyển size: "7.5" → "size_7_5"
 function normalizeSizeKey(size) {
   return 'size_' + size.replace(/\./g, '_');
 }
 
-// 1. Khởi động QR
-function initQrScanner() {
-  const qrContainer = document.getElementById("qr-reader");
-  if (!qrContainer) return;
-
-  const qrReader = new Html5Qrcode("qr-reader");
-  qrReader.start(
-    { facingMode: "environment" },
-    { fps: 10, qrbox: { width: 250, height: 250 } },
-    decodedText => {
-      qrReader.stop();
-      handleScanned(decodedText);
-    },
-    err => {}
-  ).catch(e => {
-    console.warn("QR scanner unavailable:", e);
-    qrContainer.style.display = "none";
-  });
-}
-
-// 2. Tách RPRO từ QR hoặc nhập tay
+// 👉 Khi scan hoặc nhập tay
 function handleScanned(text) {
   const parts = text.split("|");
   const rpro = parts.length > 1 ? parts[1].trim() : text.trim();
   loadOrderInfo(rpro);
 }
 
-// 3. Tải dữ liệu từ powerapp.json và Supabase
+// 👉 Load dữ liệu đơn hàng
 async function loadOrderInfo(rpro) {
   currentRpro = rpro;
+  useSizeFix = false;
+  rawRecord = null;
+
   const loadingEl = document.getElementById("loading-status");
   if (loadingEl) loadingEl.classList.remove("hidden");
 
@@ -45,57 +31,43 @@ async function loadOrderInfo(rpro) {
     const res = await fetch("/powerapp.json", { cache: "no-store" });
     const { headers, data } = await res.json();
     headersArr = headers;
-
     const rec = data.find(r => (r["PRO ODER"] || "") === rpro);
-    if (!rec) {
-      alert("Không tìm thấy đơn " + rpro);
-      return;
-    }
+    if (!rec) throw new Error("Không tìm thấy đơn " + rpro);
+    rawRecord = rec;
 
-    // 👉 Check Giới tính + sizefix
+    // Check gender
     const gender = rec["Giới tính"] || rec["GENDER"] || "";
-    let useSizeFix = false;
-    let sizeFix = {};
-
     if (gender === "Women's") {
-      try {
-        const resFix = await fetch("/sizefix.json");
-        const sizefixData = await resFix.json();
-        sizeFix = sizefixData[rpro] || {};
-        useSizeFix = Object.keys(sizeFix).length > 0;
-      } catch (err) {
-        console.warn("Không thể tải sizefix.json:", err);
-      }
+      const resFix = await fetch("/sizefix.json");
+      const fixJson = await resFix.json();
+      sizeFixData = fixJson[rpro] || null;
+      if (sizeFixData) useSizeFix = true;
     }
 
-    // 👉 Lấy data cũ đã nhập
     const { data: existingRows } = await supabase
-      .from('supplement')
-      .select('*')
-      .eq('rpro', rpro)
+      .from("supplement")
+      .select("*")
+      .eq("rpro", rpro)
       .limit(1);
+    const existingData = existingRows?.[0] || null;
 
-    const existingData = (existingRows && existingRows.length > 0) ? existingRows[0] : null;
-
-    // 👉 Gọi render đầy đủ
-    renderOrder(rec, existingData, useSizeFix, sizeFix);
+    renderOrder(rec, existingData);
   } catch (err) {
-    console.error("loadOrderInfo:", err);
-    alert("Lỗi khi tải dữ liệu, vui lòng thử lại.");
+    alert(err.message || "Lỗi khi tải dữ liệu");
+    console.error(err);
   } finally {
     if (loadingEl) loadingEl.classList.add("hidden");
   }
 }
 
-
-// 4. Render form size + metadata
-function renderOrder(r, existingData = null) {
-  document.getElementById("info-rpro").textContent = r["PRO ODER"] || "";
-  document.getElementById("info-gender").textContent = r["Giới tính"] || r["GENDER"] || "";
-  document.getElementById("info-mold").textContent = r["Mã Khuôn"] || r["MOLD"] || "";
-  document.getElementById("info-tool").textContent = r["Mã dao"] || r["Last"] || "";
-  document.getElementById("info-fabric").textContent = r["Tên vải"] || r["FB DESCRIPTION"] || "";
-  document.getElementById("info-bom").textContent = r["BOM"] || "";
+// 👉 Vẽ bảng size + metadata
+function renderOrder(rec, existing = null) {
+  document.getElementById("info-rpro").textContent = rec["PRO ODER"] || "";
+  document.getElementById("info-gender").textContent = rec["Giới tính"] || rec["GENDER"] || "";
+  document.getElementById("info-mold").textContent = rec["Mã Khuôn"] || rec["MOLD"] || "";
+  document.getElementById("info-tool").textContent = rec["Mã dao"] || rec["Last"] || "";
+  document.getElementById("info-fabric").textContent = rec["Tên vải"] || rec["FB DESCRIPTION"] || "";
+  document.getElementById("info-bom").textContent = rec["BOM"] || "";
   document.getElementById("order-info").classList.remove("hidden");
 
   const idx = headersArr.indexOf("CheckLL");
@@ -113,18 +85,20 @@ function renderOrder(r, existingData = null) {
       <tbody>
   `;
 
-  sizeKeys.forEach(size => {
-    const poQty = Number(r[size]) || 0;
+  const dataSource = useSizeFix ? sizeFixData : rawRecord;
+  const sourceKeys = useSizeFix ? Object.keys(sizeFixData || {}) : sizeKeys;
+
+  sourceKeys.forEach(size => {
+    const poQty = Number(dataSource[size]) || 0;
     if (poQty === 0) return;
-    const value = existingData?.[normalizeSizeKey(size)] || 0;
+    const oldQty = existing?.[normalizeSizeKey(size)];
     html += `
       <tr>
         <td class="border px-2 py-1 text-center">${size}</td>
         <td class="border px-2 py-1 text-center">
           <input type="number" min="0"
-       value="${existingData?.[normalizeSizeKey(size)] > 0 ? existingData[normalizeSizeKey(size)] : ''}"
-       data-size="${size}" class="w-16 input-supp" />
-
+                 value="${oldQty > 0 ? oldQty : ''}"
+                 data-size="${size}" class="w-16 input-supp" />
         </td>
         <td class="border px-2 py-1 text-center">${poQty}</td>
       </tr>
@@ -137,11 +111,19 @@ function renderOrder(r, existingData = null) {
         <tr>
           <td class="border px-2 py-1 font-bold">TOTAL</td>
           <td class="border px-2 py-1 font-bold" id="supp-total">0</td>
-          <td class="border px-2 py-1"></td>
+          <td></td>
         </tr>
       </tfoot>
     </table>
   `;
+
+  if (useSizeFix) {
+    html =
+      `<div class="bg-yellow-200 text-yellow-800 p-2 mb-2 rounded">
+        ⚠️ Đã giảm size theo sizefix
+        <button onclick="cancelSizeFix()" class="ml-4 bg-red-600 text-white px-2 py-1 rounded">Bỏ giảm size</button>
+      </div>` + html;
+  }
 
   const container = document.getElementById("size-table-container");
   container.innerHTML = html;
@@ -151,70 +133,73 @@ function renderOrder(r, existingData = null) {
     inp.addEventListener("input", updateTotal);
   });
 
-  updateTotal();  // ✅ Khởi tạo tổng ban đầu
+  updateTotal();
   document.getElementById("btn-confirm-supplement").disabled = false;
 }
 
-// 5. Tính tổng số thiếu
+// 👉 Bỏ giảm size (quay về bảng gốc)
+window.cancelSizeFix = () => {
+  useSizeFix = false;
+  renderOrder(rawRecord);
+};
+
+// 👉 Tính tổng số thiếu
 function updateTotal() {
   const sum = [...document.querySelectorAll(".input-supp")]
     .reduce((acc, inp) => acc + Number(inp.value || 0), 0);
   document.getElementById("supp-total").textContent = sum;
 }
 
-// 6. DOM Event
+// 👉 DOM Event
 window.addEventListener("DOMContentLoaded", () => {
-  const btnBack = document.getElementById("btn-back");
-  if (btnBack) btnBack.addEventListener("click", () => window.location.href = "/");
-
-  const btnSupp = document.getElementById("btn-supplement");
-  if (btnSupp) btnSupp.addEventListener("click", () => window.location.href = "/supplement.html");
-
-  const btnManual = document.getElementById("btn-manual-ok");
-  if (btnManual) btnManual.addEventListener("click", () => {
+  document.getElementById("btn-back")?.addEventListener("click", () => window.location.href = "/");
+  document.getElementById("btn-supplement")?.addEventListener("click", () => window.location.href = "/supplement.html");
+  document.getElementById("btn-manual-ok")?.addEventListener("click", () => {
     handleScanned(document.getElementById("manualRpro").value);
   });
 
-  const btnConfirm = document.getElementById("btn-confirm-supplement");
-  if (btnConfirm) {
-    btnConfirm.addEventListener("click", async () => {
-      const payload = {
-        rpro: currentRpro,
-        gender: document.getElementById("info-gender").textContent,
-        mold: document.getElementById("info-mold").textContent,
-        tool: document.getElementById("info-tool").textContent,
-        fabric: document.getElementById("info-fabric").textContent,
-        bom: document.getElementById("info-bom").textContent,
-        total: Number(document.getElementById("supp-total").textContent)
-      };
+  document.getElementById("btn-confirm-supplement")?.addEventListener("click", async () => {
+    const payload = {
+      rpro: currentRpro,
+      gender: document.getElementById("info-gender").textContent,
+      mold: document.getElementById("info-mold").textContent,
+      tool: document.getElementById("info-tool").textContent,
+      fabric: document.getElementById("info-fabric").textContent,
+      bom: document.getElementById("info-bom").textContent,
+      total: Number(document.getElementById("supp-total").textContent)
+    };
 
-      document.querySelectorAll(".input-supp").forEach(inp => {
-        const size = inp.dataset.size;
-        const qty = Number(inp.value) || 0;
-        const key = normalizeSizeKey(size);
-        payload[key] = qty;
-      });
-
-      try {
-        const { error } = await supabase
-          .from('supplement')
-          .upsert([payload], { onConflict: 'rpro' });
-
-        if (error) {
-          console.error("Supabase error:", error);
-          alert("Lỗi khi lưu vào Supabase: " + error.message);
-        } else {
-          const again = window.confirm("✅ Đã lưu bù hàng thành công!\n\nBạn muốn nhập RPRO mới?");
-          window.location.href = again ? window.location.href : "/";
-        }
-      } catch (err) {
-        console.error("submit supplement:", err);
-        alert("Lỗi khi lưu, thử lại.");
-      }
+    document.querySelectorAll(".input-supp").forEach(inp => {
+      const size = inp.dataset.size;
+      const qty = Number(inp.value) || 0;
+      payload[normalizeSizeKey(size)] = qty;
     });
-  }
+
+    try {
+      const { error } = await supabase
+        .from("supplement")
+        .upsert([payload], { onConflict: "rpro" });
+
+      if (error) throw error;
+
+      const again = window.confirm("✅ Đã lưu bù hàng!\nBạn muốn nhập RPRO khác?");
+      window.location.href = again ? window.location.href : "/";
+    } catch (err) {
+      alert("Lỗi khi lưu: " + err.message);
+    }
+  });
 
   if (document.getElementById("qr-reader")) {
-    initQrScanner();
+    const qrContainer = document.getElementById("qr-reader");
+    const qrReader = new Html5Qrcode("qr-reader");
+    qrReader.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: { width: 250, height: 250 } },
+      decoded => {
+        qrReader.stop();
+        handleScanned(decoded);
+      },
+      err => {}
+    ).catch(() => qrContainer.style.display = "none");
   }
 });
