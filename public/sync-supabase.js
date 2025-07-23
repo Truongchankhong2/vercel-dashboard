@@ -84,9 +84,10 @@ async function syncToExcel() {
     excelSizeList.forEach((size, idx) => {
       const key = `size_${size.replace('.', '_')}`;
       const val = row[key] || 0;
-      const colLetter = XLSX.utils.encode_col(7 + idx); // bắt đầu từ cột H
+      const colLetter = XLSX.utils.encode_col(8 + idx); // 👈 Bắt đầu từ cột I
       rowData[colLetter] = val;
     });
+
 
     // Ghi vào sheet
     Object.entries(rowData).forEach(([col, val]) => {
