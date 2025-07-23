@@ -22,6 +22,46 @@ const data = data2D.slice(1).map(row => {
   return obj;
 });
 
+
+// === Size run fix → sizefix.json ===
+const sizeFixSheet = workbook.Sheets["Size run fix"];
+if (!sizeFixSheet) {
+  console.error("❌ Không tìm thấy sheet 'Size run fix'");
+  process.exit(1);
+}
+
+const sizeFixRange = XLSX.utils.decode_range(sizeFixSheet["!ref"]);
+const sizeFixData = {};
+
+for (let r = 2; r <= sizeFixRange.e.r; r++) { // Bắt đầu từ dòng 3
+  const rproCell = sizeFixSheet[`A${r + 1}`];
+  if (!rproCell) continue;
+  const rpro = rproCell.v;
+  const sizes = {};
+
+  for (let c = 1; c <= sizeFixRange.e.c; c++) { // Bắt đầu từ cột B (1)
+    const sizeLabelCell = sizeFixSheet[XLSX.utils.encode_cell({ r: 1, c })]; // Dòng tiêu đề size (row 2)
+    const valCell = sizeFixSheet[XLSX.utils.encode_cell({ r, c })];
+
+    if (!sizeLabelCell || !valCell || valCell.v === undefined || valCell.v === "") continue;
+
+    const size = sizeLabelCell.v.toString().trim();
+    const qty = parseInt(valCell.v);
+    if (!isNaN(qty) && qty > 0) {
+      sizes[size] = qty;
+    }
+  }
+
+  if (Object.keys(sizes).length > 0) {
+    sizeFixData[rpro] = sizes;
+  }
+}
+
+// Lưu ra file sizefix.json
+fs.writeFileSync('./public/sizefix.json', JSON.stringify(sizeFixData, null, 2), 'utf-8');
+console.log(`✅ Đã tạo file sizefix.json từ sheet "Size run fix" (${Object.keys(sizeFixData).length} đơn hàng)`);
+
+
 // 5. Ghi ra file powerapp.json
 fs.writeFileSync('./public/powerapp.json', JSON.stringify({ headers, data }, null, 2), 'utf-8');
 
