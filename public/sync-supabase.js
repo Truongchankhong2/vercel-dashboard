@@ -52,6 +52,16 @@ async function syncToExcel() {
   }
 
   const range = XLSX.utils.decode_range(sheet['!ref']);
+
+  // 🧹 XÓA TẤT CẢ DÒNG DỮ LIỆU CŨ (TỪ DÒNG 2 TRỞ XUỐNG)
+  const clearRange = XLSX.utils.decode_range(sheet['!ref']);
+  for (let r = 1; r <= clearRange.e.r; r++) {
+    for (let c = 0; c <= clearRange.e.c; c++) {
+      const cellAddress = XLSX.utils.encode_cell({ r, c });
+      delete sheet[cellAddress];
+    }
+  }
+
   let startRow = 2; // Bắt đầu từ dòng 2 (sau header)
 
     while (sheet[`A${startRow}`]) {
