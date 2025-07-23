@@ -69,50 +69,49 @@ async function syncToExcel() {
     }
 
   for (const row of data) {
-  // 👉 Chuyển UTC → giờ Việt Nam (cộng 7 tiếng)
-  const createdAtUtc = new Date(row.created_at);
-  const createdAtVn = new Date(createdAtUtc.getTime() + 7 * 60 * 60 * 1000);
-  const createdStr = createdAtVn.toLocaleString('vi-VN');  // eg: "24/07/2025, 13:22:00"
+    // 👉 Chuyển UTC → giờ Việt Nam (cộng 7 tiếng)
+    const createdAtUtc = new Date(row.created_at); // giờ UTC
+    const createdAtVn = new Date(createdAtUtc.getTime() + 7 * 60 * 60 * 1000); // giờ VN
+    const createdAtStr = createdAtVn.toLocaleString('vi-VN'); // hiển thị kiểu Việt
 
-  // 👉 Khởi tạo object theo cột A → H
-  const rowData = {
-    A: row.rpro || '',
-    B: row.gender || '',
-    C: row.mold || '',
-    D: row.tool || '',
-    E: row.fabric || '',
-    F: row.bom || '',
-    G: row.total || 0,
-    H: createdStr
-  };
 
-  // 👉 Bắt đầu từ cột I (index 8)
-  excelSizeList.forEach((size, idx) => {
-    const key = `size_${size.replace('.', '_')}`;
-    const val = row[key] || 0;
-    const colLetter = XLSX.utils.encode_col(8 + idx);  // I = col 8
-    rowData[colLetter] = val;
-  });
-
-  // 👉 Ghi từng ô vào sheet
-  Object.entries(rowData).forEach(([col, val]) => {
-    const cellAddress = `${col}${startRow}`;
-    sheet[cellAddress] = {
-      t: typeof val === 'number' ? 'n' : 's',
-      v: val
+    // 👉 Khởi tạo object theo cột A → H
+    const rowData = {
+      A: row.rpro || '',
+      B: row.gender || '',
+      C: row.mold || '',
+      D: row.tool || '',
+      E: row.fabric || '',
+      F: row.bom || '',
+      G: row.total || 0,
+      H: createdAtStr
     };
+
+    // 👉 Bắt đầu từ cột I (index 8)
+    excelSizeList.forEach((size, idx) => {
+      const key = `size_${size.replace('.', '_')}`;
+      const val = row[key] || 0;
+      const colLetter = XLSX.utils.encode_col(8 + idx);  // I = col 8
+      rowData[colLetter] = val;
+    });
+
+    // 👉 Ghi từng ô vào sheet
+    Object.entries(rowData).forEach(([col, val]) => {
+      const cellAddress = `${col}${startRow}`;
+      sheet[cellAddress] = {
+        t: typeof val === 'number' ? 'n' : 's',
+        v: val
+      };
+    });
+
+    startRow++;
+  }
+
+  // Cập nhật lại phạm vi sheet
+  const newRange = XLSX.utils.encode_range({
+    s: { c: 0, r: 0 },
+    e: { c: 7 + excelSizeList.length, r: startRow - 1 }
   });
-
-  startRow++;
-}
-
-// 👉 Cập nhật lại phạm vi sheet (!ref)
-const totalCols = 8 + excelSizeList.length;  // A→H + size
-sheet['!ref'] = XLSX.utils.encode_range({
-  s: { c: 0, r: 0 },                // từ A1
-  e: { c: totalCols - 1, r: startRow - 1 }  // đến cuối cột và dòng
-});
-
   sheet['!ref'] = newRange;
 
   // Ghi file
