@@ -120,7 +120,7 @@ function renderOrder(rec, existing = null) {
   if (useSizeFix) {
     html =
       `<div class="bg-yellow-200 text-yellow-800 p-2 mb-2 rounded">
-        ⚠️ Đã giảm size theo sizefix
+        ⚠️ CẢNH BÁO SIZE NỮ==>ĐÃ GIẢM SIZE
         <button onclick="cancelSizeFix()" class="ml-4 bg-red-600 text-white px-2 py-1 rounded">Bỏ giảm size</button>
       </div>` + html;
   }
