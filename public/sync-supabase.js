@@ -52,7 +52,11 @@ async function syncToExcel() {
   }
 
   const range = XLSX.utils.decode_range(sheet['!ref']);
-  let startRow = Math.max(2, range.e.r + 1); // Ghi từ dòng tiếp theo sau dữ liệu có sẵn
+  let startRow = 2; // Bắt đầu từ dòng 2 (sau header)
+
+    while (sheet[`A${startRow}`]) {
+      startRow++;
+    }
 
   for (const row of data) {
     const rowData = {
