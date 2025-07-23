@@ -38,6 +38,37 @@ function handleScanned(text) {
 // 3. Tải dữ liệu từ powerapp.json và Supabase
 async function loadOrderInfo(rpro) {
   currentRpro = rpro;
+  // 👉 Hiện thông báo loading
+  const loadingEl = document.getElementById("loading-status");
+  if (loadingEl) loadingEl.classList.remove("hidden");
+
+  try {
+    const res = await fetch("/powerapp.json", { cache: "no-store" });
+    const { headers, data } = await res.json();
+    headersArr = headers;
+
+    const rec = data.find(r => (r["PRO ODER"] || "") === rpro);
+    if (!rec) {
+      alert("Không tìm thấy đơn " + rpro);
+      if (loadingEl) loadingEl.classList.add("hidden");
+      return;
+    }
+
+    const { data: existingRows } = await supabase
+      .from('supplement')
+      .select('*')
+      .eq('rpro', rpro)
+      .limit(1);
+
+    const existingData = (existingRows && existingRows.length > 0) ? existingRows[0] : null;
+    renderOrder(rec, existingData);
+  } catch (err) {
+    console.error("loadOrderInfo:", err);
+    alert("Lỗi khi tải dữ liệu, vui lòng thử lại.");
+  } finally {
+    // 👉 Ẩn thông báo loading
+    if (loadingEl) loadingEl.classList.add("hidden");
+  }
   try {
     const res = await fetch("/powerapp.json", { cache: "no-store" });
     const { headers, data } = await res.json();
