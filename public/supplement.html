@@ -6,7 +6,6 @@
   <title>Bù hàng</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/html5-qrcode" defer></script>
-  <script src="/supplement.js" defer></script>
 </head>
 <body class="bg-gray-100 p-6">
 
@@ -54,6 +53,7 @@
     </div>
   </div>
 
+  <!-- Script xử lý -->
   <script>
     window.addEventListener("DOMContentLoaded", () => {
       const btnBack = document.getElementById("btn-back");
@@ -64,5 +64,11 @@
       }
     });
   </script>
+
+  <!-- Supabase SDK + Client + Main logic -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm" type="module"></script>
+  <script type="module" src="./supabaseClient.js"></script>
+  <script type="module" src="/supplement.js"></script>
+
 </body>
 </html>
