@@ -85,8 +85,17 @@ function renderOrder(rec, existing = null) {
       <tbody>
   `;
 
-  const dataSource = useSizeFix ? sizeFixData : rawRecord;
-  const sourceKeys = useSizeFix ? Object.keys(sizeFixData || {}) : sizeKeys;
+  const dataSource = useSizeFix ? sizeFixData : rec;
+  let sourceKeys = useSizeFix ? Object.keys(sizeFixData || {}) : sizeKeys;
+
+  // ✅ Nếu dùng sizeFix thì sắp xếp size tăng dần
+  if (useSizeFix) {
+    sourceKeys = sourceKeys
+      .map(s => parseFloat(s))
+      .filter(n => !isNaN(n))
+      .sort((a, b) => a - b)
+      .map(n => n.toString());
+  }
 
   sourceKeys.forEach(size => {
     const poQty = Number(dataSource[size]) || 0;
@@ -117,10 +126,11 @@ function renderOrder(rec, existing = null) {
     </table>
   `;
 
+  // ✅ Cảnh báo nếu đang giảm size
   if (useSizeFix) {
     html =
       `<div class="bg-yellow-200 text-yellow-800 p-2 mb-2 rounded">
-        ⚠️ CẢNH BÁO SIZE NỮ==>ĐÃ GIẢM SIZE
+        ⚠️ CẢNH BÁO SIZE NỮ!! ĐÃ TỰ ĐỘNG GIẢM SIZE!!
         <button onclick="cancelSizeFix()" class="ml-4 bg-red-600 text-white px-2 py-1 rounded">Bỏ giảm size</button>
       </div>` + html;
   }
@@ -136,6 +146,7 @@ function renderOrder(rec, existing = null) {
   updateTotal();
   document.getElementById("btn-confirm-supplement").disabled = false;
 }
+
 
 // 👉 Bỏ giảm size (quay về bảng gốc)
 window.cancelSizeFix = () => {
