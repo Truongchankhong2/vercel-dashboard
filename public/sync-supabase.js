@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import XLSX from 'xlsx';
 import fs from 'fs';
-
+const { DateTime } = require("luxon");
 // === 1. Khai báo Supabase ===
 const supabase = createClient(
   'https://ixdtdrbytwdmnlqgunzu.supabase.co',     // 🔁 Thay bằng URL của bạn
@@ -70,9 +70,10 @@ async function syncToExcel() {
 
   for (const row of data) {
     // 👉 Chuyển UTC → giờ Việt Nam (cộng 7 tiếng)
-    const createdAtUtc = new Date(row.created_at); // giờ UTC
-    const createdAtVn = new Date(createdAtUtc.getTime() + 7 * 60 * 60 * 1000); // giờ VN
-    const createdAtStr = createdAtVn.toLocaleString('vi-VN'); // hiển thị kiểu Việt
+    const createdAtStr = DateTime
+    .fromISO(row.created_at, { zone: 'utc' })  // đọc từ UTC
+    .setZone('Asia/Ho_Chi_Minh')              // đổi sang giờ VN
+    .toFormat('dd/MM/yyyy HH:mm:ss');         // định dạng theo yêu cầu
 
 
     // 👉 Khởi tạo object theo cột A → H
