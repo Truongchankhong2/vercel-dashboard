@@ -23,6 +23,7 @@ async function loadOrderInfo(rpro) {
   currentRpro = rpro;
   useSizeFix = false;
   rawRecord = null;
+  sizeFixData = null;
 
   const loadingEl = document.getElementById("loading-status");
   if (loadingEl) loadingEl.classList.remove("hidden");
@@ -73,23 +74,12 @@ function renderOrder(rec, existing = null) {
   const idx = headersArr.indexOf("CheckLL");
   const sizeKeys = idx >= 0 ? headersArr.slice(idx + 1) : [];
 
-  let html = `
-    <table class="min-w-full border border-gray-300">
-      <thead class="bg-gray-100">
-        <tr>
-          <th class="border px-2 py-1">Size</th>
-          <th class="border px-2 py-1">Số thiếu</th>
-          <th class="border px-2 py-1">PO Quantity</th>
-        </tr>
-      </thead>
-      <tbody>
-  `;
-
-  const dataSource = useSizeFix ? sizeFixData : rec;
-  let sourceKeys = useSizeFix ? Object.keys(sizeFixData || {}) : sizeKeys;
-
-  // ✅ Nếu dùng sizeFix thì sắp xếp size tăng dần
+  // Xác định danh sách size gốc
+  let sourceKeys = sizeKeys.slice();
+  // Nếu dùng sizeFix, chỉ hiển thị các size gốc có trong sizeFixData
   if (useSizeFix) {
+    sourceKeys = Object.keys(sizeFixData || {});
+    // Sắp xếp size gốc tăng dần
     sourceKeys = sourceKeys
       .map(s => parseFloat(s))
       .filter(n => !isNaN(n))
@@ -97,13 +87,30 @@ function renderOrder(rec, existing = null) {
       .map(n => n.toString());
   }
 
+  let html = `
+    <table class="min-w-full border border-gray-300">
+      <thead class="bg-gray-100">
+        <tr>
+          <th class="border px-2 py-1">Size gốc</th>
+          <th class="border px-2 py-1">Size nữ</th>
+          <th class="border px-2 py-1">Số thiếu</th>
+          <th class="border px-2 py-1">PO Quantity</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
   sourceKeys.forEach(size => {
-    const poQty = Number(dataSource[size]) || 0;
+    const poQty = Number(rec[size]) || 0;
     if (poQty === 0) return;
+    const womenSize = useSizeFix
+      ? (sizeFixData[size] != null ? sizeFixData[size] : '')
+      : '';
     const oldQty = existing?.[normalizeSizeKey(size)];
     html += `
       <tr>
         <td class="border px-2 py-1 text-center">${size}</td>
+        <td class="border px-2 py-1 text-center">${womenSize}</td>
         <td class="border px-2 py-1 text-center">
           <input type="number" min="0"
                  value="${oldQty > 0 ? oldQty : ''}"
@@ -118,7 +125,7 @@ function renderOrder(rec, existing = null) {
       </tbody>
       <tfoot class="bg-gray-50">
         <tr>
-          <td class="border px-2 py-1 font-bold">TOTAL</td>
+          <td colspan="${useSizeFix ? 2 : 1}" class="border px-2 py-1 font-bold">TOTAL</td>
           <td class="border px-2 py-1 font-bold" id="supp-total">0</td>
           <td></td>
         </tr>
@@ -126,11 +133,11 @@ function renderOrder(rec, existing = null) {
     </table>
   `;
 
-  // ✅ Cảnh báo nếu đang giảm size
+  // Cảnh báo nếu đang giảm size
   if (useSizeFix) {
     html =
       `<div class="bg-yellow-200 text-yellow-800 p-2 mb-2 rounded">
-        ⚠️ CẢNH BÁO SIZE NỮ!! ĐÃ TỰ ĐỘNG GIẢM SIZE!!
+        ⚠️ CẢNH BÁO SIZE NỮ!! ĐÃ TỰ ĐỘNG GIẢM SIZE!! 
         <button onclick="cancelSizeFix()" class="ml-4 bg-red-600 text-white px-2 py-1 rounded">Bỏ giảm size</button>
       </div>` + html;
   }
@@ -146,7 +153,6 @@ function renderOrder(rec, existing = null) {
   updateTotal();
   document.getElementById("btn-confirm-supplement").disabled = false;
 }
-
 
 // 👉 Bỏ giảm size (quay về bảng gốc)
 window.cancelSizeFix = () => {
