@@ -36,12 +36,12 @@ async function loadOrderInfo(rpro) {
     rawRecord = rec;
 
     // Check gender
-    const gender = (rec["Giới tính"] || rec["GENDER"] || "").toString().trim().toLowerCase();
-    if (gender.includes("women")) {
+    const gender = rec["Giới tính"] || rec["GENDER"] || "";
+    if (gender === "Women's") {
       const resFix = await fetch("/sizefix.json");
       const fixJson = await resFix.json();
       sizeFixData = fixJson[rpro] || null;
-      if (sizeFixData && Object.keys(sizeFixData).length > 0) useSizeFix = true;
+      if (sizeFixData) useSizeFix = true;
     }
 
     const { data: existingRows } = await supabase
@@ -77,8 +77,7 @@ function renderOrder(rec, existing = null) {
     <table class="min-w-full border border-gray-300">
       <thead class="bg-gray-100">
         <tr>
-          <th class="border px-2 py-1">Size gốc</th>
-          <th class="border px-2 py-1">Size nữ</th>
+          <th class="border px-2 py-1">Size</th>
           <th class="border px-2 py-1">Số thiếu</th>
           <th class="border px-2 py-1">PO Quantity</th>
         </tr>
@@ -102,12 +101,9 @@ function renderOrder(rec, existing = null) {
     const poQty = Number(dataSource[size]) || 0;
     if (poQty === 0) return;
     const oldQty = existing?.[normalizeSizeKey(size)];
-    const femaleSize = useSizeFix && sizeFixData[size] !== undefined ? sizeFixData[size] : '';
-
     html += `
       <tr>
         <td class="border px-2 py-1 text-center">${size}</td>
-        <td class="border px-2 py-1 text-center">${femaleSize}</td>
         <td class="border px-2 py-1 text-center">
           <input type="number" min="0"
                  value="${oldQty > 0 ? oldQty : ''}"
@@ -124,7 +120,6 @@ function renderOrder(rec, existing = null) {
         <tr>
           <td class="border px-2 py-1 font-bold">TOTAL</td>
           <td class="border px-2 py-1 font-bold" id="supp-total">0</td>
-          <td></td>
           <td></td>
         </tr>
       </tfoot>
@@ -152,6 +147,7 @@ function renderOrder(rec, existing = null) {
   document.getElementById("btn-confirm-supplement").disabled = false;
 }
 
+
 // 👉 Bỏ giảm size (quay về bảng gốc)
 window.cancelSizeFix = () => {
   useSizeFix = false;
@@ -160,7 +156,7 @@ window.cancelSizeFix = () => {
 
 // 👉 Tính tổng số thiếu
 function updateTotal() {
-  const sum = Array.from(document.querySelectorAll(".input-supp"))
+  const sum = [...document.querySelectorAll(".input-supp")]
     .reduce((acc, inp) => acc + Number(inp.value || 0), 0);
   document.getElementById("supp-total").textContent = sum;
 }
@@ -168,6 +164,7 @@ function updateTotal() {
 // 👉 DOM Event
 window.addEventListener("DOMContentLoaded", () => {
   document.getElementById("btn-back")?.addEventListener("click", () => window.location.href = "/");
+  document.getElementById("btn-supplement")?.addEventListener("click", () => window.location.href = "/supplement.html");
   document.getElementById("btn-manual-ok")?.addEventListener("click", () => {
     handleScanned(document.getElementById("manualRpro").value);
   });
@@ -204,6 +201,7 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 
   if (document.getElementById("qr-reader")) {
+    const qrContainer = document.getElementById("qr-reader");
     const qrReader = new Html5Qrcode("qr-reader");
     qrReader.start(
       { facingMode: "environment" },
@@ -213,6 +211,6 @@ window.addEventListener("DOMContentLoaded", () => {
         handleScanned(decoded);
       },
       err => {}
-    ).catch(() => document.getElementById("qr-reader").style.display = "none");
+    ).catch(() => qrContainer.style.display = "none");
   }
 });

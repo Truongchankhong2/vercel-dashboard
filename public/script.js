@@ -1,6 +1,4 @@
 // --- DOM elements chung ---
-const btnSupplement = document.getElementById('btn-supplement');
-
 const container        = document.getElementById('table-container');
 const detailsContainer = document.getElementById('details-container');
 const searchResult     = document.getElementById('searchResult');
@@ -811,11 +809,6 @@ window.addEventListener('DOMContentLoaded', () => {
     btnDelayTab.classList.remove('bg-gray-300', 'text-black');
     btnUrgentTab.classList.remove('bg-yellow-400', 'text-white');
     btnUrgentTab.classList.add('bg-gray-300', 'text-black');
-
-    btnSupplement?.addEventListener('click', () => {
-      // chuyển sang trang Bù hàng
-      window.location.href = '/supplement.html';
-
   });
 
   // Sự kiện nút Delay
