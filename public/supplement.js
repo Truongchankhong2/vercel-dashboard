@@ -63,30 +63,36 @@ async function loadOrderInfo(rpro) {
 
 // 👉 Vẽ bảng size + metadata
 function renderOrder(rec, existing = null) {
-  document.getElementById("info-rpro").textContent = rec["PRO ODER"] || "";
-  document.getElementById("info-gender").textContent = rec["Giới tính"] || rec["GENDER"] || "";
-  document.getElementById("info-mold").textContent = rec["Mã Khuôn"] || rec["MOLD"] || "";
-  document.getElementById("info-tool").textContent = rec["Mã dao"] || rec["Last"] || "";
-  document.getElementById("info-fabric").textContent = rec["Tên vải"] || rec["FB DESCRIPTION"] || "";
-  document.getElementById("info-bom").textContent = rec["BOM"] || "";
+  // Hiển thị metadata
+  document.getElementById("info-rpro").textContent    = rec["PRO ODER"] || "";
+  document.getElementById("info-gender").textContent  = rec["Giới tính"] || rec["GENDER"] || "";
+  document.getElementById("info-mold").textContent    = rec["Mã Khuôn"] || rec["MOLD"] || "";
+  document.getElementById("info-tool").textContent    = rec["Mã dao"] || rec["Last"] || "";
+  document.getElementById("info-fabric").textContent  = rec["Tên vải"] || rec["FB DESCRIPTION"] || "";
+  document.getElementById("info-bom").textContent     = rec["BOM"] || "";
   document.getElementById("order-info").classList.remove("hidden");
 
-  const idx = headersArr.indexOf("CheckLL");
-  const sizeKeys = idx >= 0 ? headersArr.slice(idx + 1) : [];
+  // Lấy tất cả key size gốc từ rec (sau cột "CheckLL")
+  const idx      = headersArr.indexOf("CheckLL");
+  const allSizes = idx >= 0 ? headersArr.slice(idx + 1) : [];
+  // Giữ lại chỉ những size gốc có PO > 0
+  const origSizes = allSizes.filter(sz => Number(rec[sz]) > 0);
 
-  // Xác định danh sách size gốc
-  let sourceKeys = sizeKeys.slice();
-  // Nếu dùng sizeFix, chỉ hiển thị các size gốc có trong sizeFixData
-  if (useSizeFix) {
-    sourceKeys = Object.keys(sizeFixData || {});
-    // Sắp xếp size gốc tăng dần
-    sourceKeys = sourceKeys
-      .map(s => parseFloat(s))
-      .filter(n => !isNaN(n))
-      .sort((a, b) => a - b)
-      .map(n => n.toString());
+  // Nếu là Women's và có sizeFixData, lấy ra mảng [femaleSize, fixQty]
+  let fixEntries = [];
+  if (useSizeFix && sizeFixData) {
+    fixEntries = Object.entries(sizeFixData)
+      // chỉ lấy những size có số > 0
+      .filter(([, qty]) => Number(qty) > 0)
+      // chuyển size từ string → number để sort
+      .map(([s, qty]) => [parseFloat(s), Number(qty)])
+      .filter(([s]) => !isNaN(s))
+      .sort(([a], [b]) => a - b)
+      // quay lại format ["4.5", 50]
+      .map(([s, qty]) => [s.toString(), qty]);
   }
 
+  // Bắt đầu dựng HTML table
   let html = `
     <table class="min-w-full border border-gray-300">
       <thead class="bg-gray-100">
@@ -100,32 +106,53 @@ function renderOrder(rec, existing = null) {
       <tbody>
   `;
 
-  sourceKeys.forEach(size => {
-    const poQty = Number(rec[size]) || 0;
-    if (poQty === 0) return;
-    const womenSize = useSizeFix
-      ? (sizeFixData[size] != null ? sizeFixData[size] : '')
-      : '';
-    const oldQty = existing?.[normalizeSizeKey(size)];
-    html += `
-      <tr>
-        <td class="border px-2 py-1 text-center">${size}</td>
-        <td class="border px-2 py-1 text-center">${womenSize}</td>
-        <td class="border px-2 py-1 text-center">
-          <input type="number" min="0"
-                 value="${oldQty > 0 ? oldQty : ''}"
-                 data-size="${size}" class="w-16 input-supp" />
-        </td>
-        <td class="border px-2 py-1 text-center">${poQty}</td>
-      </tr>
-    `;
-  });
+  if (useSizeFix && fixEntries.length) {
+    // Phần Women's: zip fixEntries → origSizes qua số lượng
+    for (let i = 0; i < fixEntries.length; i++) {
+      const [femaleSize, fixQty] = fixEntries[i];
+      // Tìm size gốc trong rec có giá trị PO = fixQty
+      const orig = origSizes.find(sz => Number(rec[sz]) === fixQty) || "";
+      const oldQty = existing?.[normalizeSizeKey(femaleSize)] || 0;
+
+      html += `
+        <tr>
+          <td class="border px-2 py-1 text-center">${orig}</td>
+          <td class="border px-2 py-1 text-center">${femaleSize}</td>
+          <td class="border px-2 py-1 text-center">
+            <input type="number" min="0"
+                   value="${oldQty > 0 ? oldQty : ''}"
+                   data-size="${femaleSize}" class="w-16 input-supp" />
+          </td>
+          <td class="border px-2 py-1 text-center">${fixQty}</td>
+        </tr>
+      `;
+    }
+  } else {
+    // Phần bình thường: chỉ size gốc
+    origSizes.forEach(size => {
+      const poQty = Number(rec[size]) || 0;
+      if (poQty === 0) return;
+      const oldQty = existing?.[normalizeSizeKey(size)] || 0;
+      html += `
+        <tr>
+          <td class="border px-2 py-1 text-center">${size}</td>
+          <td class="border px-2 py-1 text-center"></td>
+          <td class="border px-2 py-1 text-center">
+            <input type="number" min="0"
+                   value="${oldQty > 0 ? oldQty : ''}"
+                   data-size="${size}" class="w-16 input-supp" />
+          </td>
+          <td class="border px-2 py-1 text-center">${poQty}</td>
+        </tr>
+      `;
+    });
+  }
 
   html += `
       </tbody>
       <tfoot class="bg-gray-50">
         <tr>
-          <td colspan="${useSizeFix ? 2 : 1}" class="border px-2 py-1 font-bold">TOTAL</td>
+          <td colspan="2" class="border px-2 py-1 font-bold">TOTAL</td>
           <td class="border px-2 py-1 font-bold" id="supp-total">0</td>
           <td></td>
         </tr>
@@ -133,26 +160,33 @@ function renderOrder(rec, existing = null) {
     </table>
   `;
 
-  // Cảnh báo nếu đang giảm size
+  // Nếu Women's thì thêm cảnh báo lên đầu
   if (useSizeFix) {
-    html =
-      `<div class="bg-yellow-200 text-yellow-800 p-2 mb-2 rounded">
+    html = `
+      <div class="bg-yellow-200 text-yellow-800 p-2 mb-2 rounded">
         ⚠️ CẢNH BÁO SIZE NỮ!! ĐÃ TỰ ĐỘNG GIẢM SIZE!! 
-        <button onclick="cancelSizeFix()" class="ml-4 bg-red-600 text-white px-2 py-1 rounded">Bỏ giảm size</button>
-      </div>` + html;
+        <button onclick="cancelSizeFix()" 
+                class="ml-4 bg-red-600 text-white px-2 py-1 rounded">
+          Bỏ giảm size
+        </button>
+      </div>
+    ` + html;
   }
 
+  // Render vào DOM
   const container = document.getElementById("size-table-container");
   container.innerHTML = html;
   container.classList.remove("hidden");
 
+  // Gắn event calculate lại tổng
   document.querySelectorAll(".input-supp").forEach(inp => {
     inp.addEventListener("input", updateTotal);
   });
-
   updateTotal();
+
   document.getElementById("btn-confirm-supplement").disabled = false;
 }
+
 
 // 👉 Bỏ giảm size (quay về bảng gốc)
 window.cancelSizeFix = () => {
