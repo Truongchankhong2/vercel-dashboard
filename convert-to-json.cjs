@@ -23,7 +23,7 @@ const data = data2D.slice(1).map(row => {
 fs.writeFileSync('./public/powerapp.json', JSON.stringify({ headers, data }, null, 2), 'utf-8');
 console.log(`✅ powerapp.json đã được tạo (${data.length} dòng)`);
 
-// === 3. Tạo sizefix.json từ sheet "Size run fix" ===
+// === 3. Tạo sizefix.json từ sheet "Size run fix" (dạng pivot) ===
 const sizeFixSheet = wb.Sheets["Size run fix"];
 if (!sizeFixSheet) {
   console.error("❌ Không tìm thấy sheet 'Size run fix'");
@@ -33,19 +33,21 @@ if (!sizeFixSheet) {
 const sizeFixRange = XLSX.utils.decode_range(sizeFixSheet["!ref"]);
 const sizeFixData = {};
 
-for (let r = 2; r <= sizeFixRange.e.r; r++) {
-  const rproCell = sizeFixSheet[`A${r + 1}`];
-  if (!rproCell) continue;
-  const rpro = rproCell.v;
+for (let r = sizeFixRange.s.r + 1; r <= sizeFixRange.e.r; r++) {
+  const rproCell = sizeFixSheet[XLSX.utils.encode_cell({ r, c: 0 })];
+  if (!rproCell || !rproCell.v) continue;
+
+  const rpro = rproCell.v.toString().trim();
   const sizes = {};
 
   for (let c = 1; c <= sizeFixRange.e.c; c++) {
-    const sizeLabelCell = sizeFixSheet[XLSX.utils.encode_cell({ r: 1, c })]; // Tiêu đề size ở dòng 2
-    const valCell = sizeFixSheet[XLSX.utils.encode_cell({ r, c })];
-    if (!sizeLabelCell || !valCell || valCell.v === undefined || valCell.v === "") continue;
+    const sizeCell = sizeFixSheet[XLSX.utils.encode_cell({ r: sizeFixRange.s.r, c })]; // dòng tiêu đề (dòng 1)
+    const qtyCell = sizeFixSheet[XLSX.utils.encode_cell({ r, c })];
 
-    const size = sizeLabelCell.v.toString().trim();
-    const qty = parseInt(valCell.v);
+    if (!sizeCell || !qtyCell || qtyCell.v === undefined || qtyCell.v === "") continue;
+
+    const size = sizeCell.v.toString().trim();
+    const qty = parseInt(qtyCell.v);
     if (!isNaN(qty) && qty > 0) {
       sizes[size] = qty;
     }
