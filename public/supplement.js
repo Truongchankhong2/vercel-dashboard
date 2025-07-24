@@ -62,37 +62,36 @@ async function loadOrderInfo(rpro) {
 }
 
 // 👉 Vẽ bảng size + metadata
+/**
+ * Vẽ thông tin đơn và bảng Size
+ * @param {Object} rec     – Bản ghi của đơn (từ powerapp.json)
+ * @param {Object|null} existing – Dữ liệu bù hàng đã lưu (nếu có)
+ */
 function renderOrder(rec, existing = null) {
-  // Hiển thị metadata
-  document.getElementById("info-rpro").textContent    = rec["PRO ODER"] || "";
-  document.getElementById("info-gender").textContent  = rec["Giới tính"] || rec["GENDER"] || "";
-  document.getElementById("info-mold").textContent    = rec["Mã Khuôn"] || rec["MOLD"] || "";
-  document.getElementById("info-tool").textContent    = rec["Mã dao"] || rec["Last"] || "";
-  document.getElementById("info-fabric").textContent  = rec["Tên vải"] || rec["FB DESCRIPTION"] || "";
-  document.getElementById("info-bom").textContent     = rec["BOM"] || "";
+  // 1) Hiển thị metadata đơn
+  document.getElementById("info-rpro").textContent   = rec["PRO ODER"] || "";
+  document.getElementById("info-gender").textContent = rec["Giới tính"] || rec["GENDER"] || "";
+  document.getElementById("info-mold").textContent   = rec["Mã Khuôn"] || rec["MOLD"] || "";
+  document.getElementById("info-tool").textContent   = rec["Mã dao"] || rec["Last"] || "";
+  document.getElementById("info-fabric").textContent = rec["Tên vải"] || rec["FB DESCRIPTION"] || "";
+  document.getElementById("info-bom").textContent    = rec["BOM"] || "";
   document.getElementById("order-info").classList.remove("hidden");
 
-  // Lấy tất cả key size gốc từ rec (sau cột "CheckLL")
+  // 2) Xác định danh sách Size gốc (các cột sau "CheckLL" trong headersArr)
   const idx      = headersArr.indexOf("CheckLL");
   const allSizes = idx >= 0 ? headersArr.slice(idx + 1) : [];
-  // Giữ lại chỉ những size gốc có PO > 0
   const origSizes = allSizes.filter(sz => Number(rec[sz]) > 0);
 
-  // Nếu là Women's và có sizeFixData, lấy ra mảng [femaleSize, fixQty]
+  // 3) Nếu là Women's và có sizeFixData, build mảng fixEntries = [[femaleSize, fixQty], ...]
   let fixEntries = [];
   if (useSizeFix && sizeFixData) {
     fixEntries = Object.entries(sizeFixData)
-      // chỉ lấy những size có số > 0
-      .filter(([, qty]) => Number(qty) > 0)
-      // chuyển size từ string → number để sort
-      .map(([s, qty]) => [parseFloat(s), Number(qty)])
-      .filter(([s]) => !isNaN(s))
-      .sort(([a], [b]) => a - b)
-      // quay lại format ["4.5", 50]
-      .map(([s, qty]) => [s.toString(), qty]);
+      .filter(([, qty]) => qty > 0)
+      .map(([s, qty]) => [s, qty])
+      .sort(([a], [b]) => parseFloat(a) - parseFloat(b));
   }
 
-  // Bắt đầu dựng HTML table
+  // 4) Bắt đầu dựng HTML bảng
   let html = `
     <table class="min-w-full border border-gray-300">
       <thead class="bg-gray-100">
@@ -106,48 +105,28 @@ function renderOrder(rec, existing = null) {
       <tbody>
   `;
 
-  if (useSizeFix && fixEntries.length) {
-    // Phần Women's: zip fixEntries → origSizes qua số lượng
-    for (let i = 0; i < fixEntries.length; i++) {
-      const [femaleSize, fixQty] = fixEntries[i];
-      // Tìm size gốc trong rec có giá trị PO = fixQty
-      const orig = origSizes.find(sz => Number(rec[sz]) === fixQty) || "";
-      const oldQty = existing?.[normalizeSizeKey(femaleSize)] || 0;
+  // 5) Zip origSizes với fixEntries theo chỉ số
+  for (let i = 0; i < origSizes.length; i++) {
+    const orig     = origSizes[i];
+    const [female, fixQty] = fixEntries[i] || ["", ""];
+    const oldQty   = existing?.[normalizeSizeKey(female)] || "";
 
-      html += `
-        <tr>
-          <td class="border px-2 py-1 text-center">${orig}</td>
-          <td class="border px-2 py-1 text-center">${femaleSize}</td>
-          <td class="border px-2 py-1 text-center">
-            <input type="number" min="0"
-                   value="${oldQty > 0 ? oldQty : ''}"
-                   data-size="${femaleSize}" class="w-16 input-supp" />
-          </td>
-          <td class="border px-2 py-1 text-center">${fixQty}</td>
-        </tr>
-      `;
-    }
-  } else {
-    // Phần bình thường: chỉ size gốc
-    origSizes.forEach(size => {
-      const poQty = Number(rec[size]) || 0;
-      if (poQty === 0) return;
-      const oldQty = existing?.[normalizeSizeKey(size)] || 0;
-      html += `
-        <tr>
-          <td class="border px-2 py-1 text-center">${size}</td>
-          <td class="border px-2 py-1 text-center"></td>
-          <td class="border px-2 py-1 text-center">
-            <input type="number" min="0"
-                   value="${oldQty > 0 ? oldQty : ''}"
-                   data-size="${size}" class="w-16 input-supp" />
-          </td>
-          <td class="border px-2 py-1 text-center">${poQty}</td>
-        </tr>
-      `;
-    });
+    html += `
+      <tr>
+        <td class="border px-2 py-1 text-center">${orig}</td>
+        <td class="border px-2 py-1 text-center">${female}</td>
+        <td class="border px-2 py-1 text-center">
+          <input type="number" min="0"
+                 value="${oldQty}"
+                 data-size="${female || orig}"
+                 class="w-16 input-supp" />
+        </td>
+        <td class="border px-2 py-1 text-center">${fixQty}</td>
+      </tr>
+    `;
   }
 
+  // 6) Footer tổng
   html += `
       </tbody>
       <tfoot class="bg-gray-50">
@@ -160,12 +139,12 @@ function renderOrder(rec, existing = null) {
     </table>
   `;
 
-  // Nếu Women's thì thêm cảnh báo lên đầu
+  // 7) Nếu đang giảm size (Women's), thêm cảnh báo ở đầu
   if (useSizeFix) {
     html = `
       <div class="bg-yellow-200 text-yellow-800 p-2 mb-2 rounded">
-        ⚠️ CẢNH BÁO SIZE NỮ!! ĐÃ TỰ ĐỘNG GIẢM SIZE!! 
-        <button onclick="cancelSizeFix()" 
+        ⚠️ CẢNH BÁO SIZE NỮ!! ĐÃ TỰ ĐỘNG GIẢM SIZE!!
+        <button onclick="cancelSizeFix()"
                 class="ml-4 bg-red-600 text-white px-2 py-1 rounded">
           Bỏ giảm size
         </button>
@@ -173,19 +152,21 @@ function renderOrder(rec, existing = null) {
     ` + html;
   }
 
-  // Render vào DOM
+  // 8) Render lên DOM và bind sự kiện
   const container = document.getElementById("size-table-container");
   container.innerHTML = html;
   container.classList.remove("hidden");
 
-  // Gắn event calculate lại tổng
-  document.querySelectorAll(".input-supp").forEach(inp => {
-    inp.addEventListener("input", updateTotal);
-  });
+  // Kích hoạt input và tính tổng khi thay đổi
+  document.querySelectorAll(".input-supp").forEach(inp =>
+    inp.addEventListener("input", updateTotal)
+  );
   updateTotal();
 
+  // Cho phép nút Xác nhận
   document.getElementById("btn-confirm-supplement").disabled = false;
 }
+
 
 
 // 👉 Bỏ giảm size (quay về bảng gốc)
