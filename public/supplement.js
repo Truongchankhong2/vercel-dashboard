@@ -71,8 +71,8 @@ function renderOrder(rec, existing = null) {
   // 1) Hiển thị metadata đơn
   document.getElementById("info-rpro").textContent   = rec["PRO ODER"] || "";
   document.getElementById("info-gender").textContent = rec["Giới tính"] || rec["GENDER"] || "";
-  document.getElementById("info-mold").textContent   = rec["Mã Khuôn"] || rec["MOLD"] || "";
-  document.getElementById("info-tool").textContent   = rec["Mã dao"] || rec["Last"] || "";
+  document.getElementById("info-mold").textContent   = rec["Mã Khuôn"] || rec["#MOLD"] || "";
+  document.getElementById("info-tool").textContent   = rec["Mã dao"] || rec["#Last"] || "";
   document.getElementById("info-fabric").textContent = rec["Tên vải"] || rec["FB DESCRIPTION"] || "";
   document.getElementById("info-bom").textContent    = rec["BOM"] || "";
   document.getElementById("order-info").classList.remove("hidden");
@@ -143,7 +143,7 @@ function renderOrder(rec, existing = null) {
   if (useSizeFix) {
     html = `
       <div class="bg-yellow-200 text-yellow-800 p-2 mb-2 rounded">
-        ⚠️ CẢNH BÁO SIZE NỮ!! ĐÃ TỰ ĐỘNG GIẢM SIZE!!
+        ⚠️ CẢNH BÁO SIZE NỮ!! ĐÃ TỰ ĐỘNG GIẢM SIZE NẾU BOM YÊU CẦU!!
         <button onclick="cancelSizeFix()"
                 class="ml-4 bg-red-600 text-white px-2 py-1 rounded">
           Bỏ giảm size
