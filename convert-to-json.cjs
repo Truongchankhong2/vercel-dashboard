@@ -33,21 +33,18 @@ if (!sizeFixSheet) {
 const sizeFixRange = XLSX.utils.decode_range(sizeFixSheet["!ref"]);
 const sizeFixData = {};
 
-for (let r = 2; r <= sizeFixRange.e.r; r++) { // Dòng bắt đầu từ dòng 3 (index 2)
+for (let r = 2; r <= sizeFixRange.e.r; r++) {
   const rproCell = sizeFixSheet[`A${r + 1}`];
-  const genderCell = sizeFixSheet[`B${r + 1}`];
-  if (!rproCell || !genderCell || genderCell.v !== "Women's") continue;
-
+  if (!rproCell) continue;
   const rpro = rproCell.v;
   const sizes = {};
 
-  for (let c = 2; c <= sizeFixRange.e.c; c++) { // Size từ cột C (index 2)
-    const sizeHeaderCell = sizeFixSheet[XLSX.utils.encode_cell({ r: 1, c })];
+  for (let c = 1; c <= sizeFixRange.e.c; c++) {
+    const sizeLabelCell = sizeFixSheet[XLSX.utils.encode_cell({ r: 1, c })]; // Tiêu đề size ở dòng 2
     const valCell = sizeFixSheet[XLSX.utils.encode_cell({ r, c })];
+    if (!sizeLabelCell || !valCell || valCell.v === undefined || valCell.v === "") continue;
 
-    if (!sizeHeaderCell || !valCell || valCell.v === undefined || valCell.v === "") continue;
-
-    const size = sizeHeaderCell.v.toString().trim();
+    const size = sizeLabelCell.v.toString().trim();
     const qty = parseInt(valCell.v);
     if (!isNaN(qty) && qty > 0) {
       sizes[size] = qty;
@@ -59,9 +56,7 @@ for (let r = 2; r <= sizeFixRange.e.r; r++) { // Dòng bắt đầu từ dòng 3
   }
 }
 
-// Ghi ra file JSON
 fs.writeFileSync('./public/sizefix.json', JSON.stringify(sizeFixData, null, 2), 'utf-8');
-console.log(`✅ Đã tạo file sizefix.json từ sheet "Size run fix" (${Object.keys(sizeFixData).length} đơn hàng)`);
-
+console.log(`✅ sizefix.json đã được tạo (${Object.keys(sizeFixData).length} đơn hàng)`);
 
 console.log("✅ Tất cả chuyển đổi hoàn tất.");
