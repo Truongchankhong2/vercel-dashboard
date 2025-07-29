@@ -69,6 +69,8 @@ async function loadOrderInfo(rpro) {
 function renderOrder(rec, existing = null) {
   // 1) Hiển thị metadata đơn
   document.getElementById("info-rpro").textContent   = rec["PRO ODER"] || "";
+  document.getElementById("info-so").textContent     = rec["SO"] || rec["Sales Order"] || "";
+  document.getElementById("info-customers").textContent = rec["CUSTOMERS"] || "";
   document.getElementById("info-gender").textContent = rec["Giới tính"] || rec["GENDER"] || "";
   document.getElementById("info-mold").textContent   = rec["Mã Khuôn"] || rec["#MOLD"] || "";
   document.getElementById("info-tool").textContent   = rec["Mã dao"]  || rec["#Last"]  || "";
@@ -209,6 +211,8 @@ window.addEventListener("DOMContentLoaded", () => {
     // 1) Chuẩn bị payload cơ bản
     const payload = {
       rpro: currentRpro,
+      so:   document.getElementById("info-so").textContent,
+      customers: document.getElementById("info-customers").textContent,
       gender: document.getElementById("info-gender").textContent,
       mold:   document.getElementById("info-mold").textContent,
       tool:   document.getElementById("info-tool").textContent,
