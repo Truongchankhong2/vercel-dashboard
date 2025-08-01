@@ -270,7 +270,7 @@ async function searchProgress() {
 
     const dateFields = [
       'RECEIVED (MATERIAL)', 'RECEIVED (LOGO)', 'Laminating (Pro)',
-      'Prefitting (Pro)', 'Slipting (Pro)', 'Bào (Pro)',
+      'Prefitting (Pro)', 'Slipting (Pro)', 'Bào (Pro)', 'Molding (PPC)',
       'Molding Pro (IN)', 'Molding Pro', 'IN lean Line (Pro)',
       'IN lean Line (MACHINE)', 'Out lean Line (Pro)',
       'PACKING PRO', 'Packing date', 'Finish date', 'STORED'
