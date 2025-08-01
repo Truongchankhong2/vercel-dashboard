@@ -26,6 +26,18 @@
       <button id="progressBtnSearch" class="bg-blue-600 text-white px-4 py-1 rounded">Tìm Progress</button>
       <button id="progressBtnClear" class="bg-red-500 text-white px-4 py-1 rounded">Xóa Progress</button>
     </div>
+    <div class="flex gap-2 mt-2">
+      <button id="progressBtnScan" class="bg-green-600 text-white px-4 py-1 rounded">
+        📷 Scan QR
+      </button>
+    </div>
+
+    <!-- Popup/area để hiển thị camera -->
+    <div id="progress-qr-reader" class="hidden mt-2"></div>
+
+    <!-- import thư viện -->
+    <script src="https://unpkg.com/html5-qrcode" defer></script>
+
   </div>
 
   <!-- ==== TÌM KIẾM NÂNG CAO (chỉ hiển thị ở Progress View) ==== -->
@@ -148,7 +160,7 @@
   <script src="/script.js"></script>
   <!-- Thư viện QR scan -->
   <script src="https://unpkg.com/html5-qrcode" defer></script>
-  <script type="module" src="/supplement.js"></script>
+  
 
 </body>
 </html>

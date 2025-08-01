@@ -13,30 +13,51 @@ function normalizeSizeKey(size) {
 
 // 👉 Khi scan hoặc nhập tay
 function handleScanned(text) {
-  const parts = text.split("|");
-  const rpro = parts.length > 1 ? parts[1].trim() : text.trim();
+  // Trim để loại bỏ khoảng trắng dư
+  const cleanText = (text || "").trim();
+
+  let rpro = "";
+
+  if (cleanText.includes("|")) {
+    // Nếu QR chứa dấu |
+    const parts = cleanText.split("|");
+    // Ưu tiên tìm phần tử có "RPRO"
+    const rproPart = parts.find(p => p.startsWith("RPRO"));
+    rpro = rproPart || cleanText;
+  } else {
+    // QR không chứa |, kiểm tra có phải RPRO không
+    if (cleanText.startsWith("RPRO")) {
+      rpro = cleanText;
+    } else {
+      alert("❌ Mã QR không hợp lệ: " + cleanText);
+      return;
+    }
+  }
+
+  // Gọi hàm load dữ liệu
   loadOrderInfo(rpro);
 }
+
 
 // 👉 Load dữ liệu đơn hàng
 async function loadOrderInfo(rpro) {
   currentRpro = rpro;
   useSizeFix = false;
   rawRecord = null;
-  sizeFixData = null;
 
   const loadingEl = document.getElementById("loading-status");
-  if (loadingEl) loadingEl.classList.remove("hidden");
+  loadingEl?.classList.remove("hidden");
 
   try {
     const res = await fetch("/powerapp.json", { cache: "no-store" });
     const { headers, data } = await res.json();
     headersArr = headers;
+
     const rec = data.find(r => (r["PRO ODER"] || "") === rpro);
     if (!rec) throw new Error("Không tìm thấy đơn " + rpro);
     rawRecord = rec;
 
-    // Check gender
+    // Nếu Women's, thử fetch sizefix.json
     const gender = rec["Giới tính"] || rec["GENDER"] || "";
     if (gender === "Women's") {
       const resFix = await fetch("/sizefix.json");
@@ -45,6 +66,7 @@ async function loadOrderInfo(rpro) {
       if (sizeFixData) useSizeFix = true;
     }
 
+    // Lấy dữ liệu đã lưu nếu có
     const { data: existingRows } = await supabase
       .from("supplement")
       .select("*")
@@ -57,46 +79,47 @@ async function loadOrderInfo(rpro) {
     alert(err.message || "Lỗi khi tải dữ liệu");
     console.error(err);
   } finally {
-    if (loadingEl) loadingEl.classList.add("hidden");
+    loadingEl?.classList.add("hidden");
   }
 }
 
-/**
- * Vẽ thông tin đơn và bảng Size
- * @param {Object} rec     – Bản ghi của đơn (từ powerapp.json)
- * @param {Object|null} existing – Dữ liệu bù hàng đã lưu (nếu có)
- */
+// 👉 Vẽ bảng size + metadata
 function renderOrder(rec, existing = null) {
-  // 1) Hiển thị metadata đơn
-  document.getElementById("info-rpro").textContent   = rec["PRO ODER"] || "";
-  document.getElementById("info-so").textContent     = rec["SO"] || rec["Sales Order"] || "";
+  // Metadata
+  document.getElementById("info-rpro").textContent = rec["PRO ODER"] || "";
+  document.getElementById("info-so").textContent   = rec["SO"] || rec["Sales Order"] || "";
   document.getElementById("info-customers").textContent = rec["CUSTOMERS"] || "";
-  document.getElementById("info-gender").textContent = rec["Giới tính"] || rec["GENDER"] || "";
+  const gender = rec["Giới tính"] || rec["GENDER"] || "";
+  document.getElementById("info-gender").textContent = gender;
   document.getElementById("info-mold").textContent   = rec["Mã Khuôn"] || rec["#MOLD"] || "";
   document.getElementById("info-tool").textContent   = rec["Mã dao"]  || rec["#Last"]  || "";
   document.getElementById("info-fabric").textContent = rec["Tên vải"] || rec["FB DESCRIPTION"] || "";
-  document.getElementById("info-bom").textContent    = rec["BOM"]      || "";
+  document.getElementById("info-bom").textContent    = rec["BOM"] || "";
   document.getElementById("order-info").classList.remove("hidden");
 
-  // 2) Xác định danh sách Size gốc (các cột sau "CheckLL" trong headersArr)
-  const idx      = headersArr.indexOf("CheckLL");
-  const allSizes = idx >= 0 ? headersArr.slice(idx + 1) : [];
-  // Lấy ra chỉ những size gốc có PO>0
-  const origSizes = allSizes.filter(sz => {
-    const v = rec[sz];
-    return v !== undefined && v !== null && Number(v) > 0;
-  });
+  // Xác định các cột size gốc
+  const idx = headersArr.indexOf("CheckLL");
+  const sizeKeys = idx >= 0 ? headersArr.slice(idx + 1) : [];
 
-  // 3) Nếu là Women's, build mảng fixEntries = [[femaleSize, fixQty], ...]
-  let fixEntries = [];
-  if (useSizeFix && sizeFixData) {
-    fixEntries = Object.entries(sizeFixData)
-      .filter(([, qty]) => Number(qty) > 0)
-      .map(([s, qty]) => [s, Number(qty)])
-      .sort(([a], [b]) => parseFloat(a) - parseFloat(b));
-  }
+  // Dữ liệu gốc & size nữ
+  const originalData = rec;
+  const femaleData = sizeFixData || {};
 
-  // 4) Bắt đầu dựng HTML bảng
+  // Lọc & sắp xếp size gốc tăng dần, chỉ giữ size gốc có PO Quantity > 0
+  const originalSizes = sizeKeys
+    .filter(s => Number(originalData[s]) > 0)
+    .map(s => parseFloat(s))
+    .filter(n => !isNaN(n))
+    .sort((a, b) => a - b)
+    .map(n => n.toString());
+
+  // Sắp xếp size nữ tăng dần
+  const femaleSizes = Object.keys(femaleData)
+    .map(s => parseFloat(s))
+    .filter(n => !isNaN(n))
+    .sort((a, b) => a - b)
+    .map(n => n.toString());
+
   let html = `
     <table class="min-w-full border border-gray-300">
       <thead class="bg-gray-100">
@@ -110,47 +133,37 @@ function renderOrder(rec, existing = null) {
       <tbody>
   `;
 
-  // 5) Duyệt origSizes, với Men's poQty từ rec, với Women's từ fixEntries
-  for (let i = 0; i < origSizes.length; i++) {
-    const orig = origSizes[i];
-    // với Women's thì zip, còn Men's fixEntries rỗng => female="" và fixQty=""
-    const female = useSizeFix ? (fixEntries[i]?.[0] || "") : "";
-    const fixQty = useSizeFix ? (fixEntries[i]?.[1] || 0) : 0;
+  // Lặp theo size gốc có số lượng > 0
+  originalSizes.forEach((sizeOriginal, idx) => {
+    const sizeFemale = (gender === "Women's" && femaleSizes[idx]) ? femaleSizes[idx] : "";
+    const poQtyOriginal = Number(originalData[sizeOriginal]) || 0;
+    const poQtyFemale = sizeFemale ? Number(femaleData[sizeFemale]) || 0 : 0;
 
-    // PO quantity: nếu dùng sizeFix thì lấy fixQty, còn không thì từ rec[orig]
-    const poQty = useSizeFix
-      ? fixQty
-      : ( () => {
-          const raw = rec[orig];
-          // ép kiểu sao cho parse được cả "1,290" thành 1290
-          const num = parseInt((raw||"").toString().replace(/,/g,''), 10);
-          return isNaN(num) ? 0 : num;
-        })();
+    const poQty = (gender === "Women's") ? poQtyFemale : poQtyOriginal;
 
-    // Giữ lại giá trị đã lưu (nếu có)
-    const oldQty = existing?.[normalizeSizeKey(useSizeFix ? female : orig)] || "";
+    const inputKey = sizeOriginal;
+    const oldQty = existing?.[normalizeSizeKey(inputKey)] || "";
 
     html += `
       <tr>
-        <td class="border px-2 py-1 text-center">${orig}</td>
-        <td class="border px-2 py-1 text-center">${female}</td>
+        <td class="border px-2 py-1 text-center">${sizeOriginal}</td>
+        <td class="border px-2 py-1 text-center">${sizeFemale}</td>
         <td class="border px-2 py-1 text-center">
           <input type="number" min="0"
                  value="${oldQty}"
-                 data-size="${useSizeFix ? female : orig}"
+                 data-size="${inputKey}"
                  class="w-16 input-supp" />
         </td>
         <td class="border px-2 py-1 text-center">${poQty}</td>
       </tr>
     `;
-  }
+  });
 
-  // 6) Footer tổng
   html += `
       </tbody>
       <tfoot class="bg-gray-50">
         <tr>
-          <td colspan="2" class="border px-2 py-1 font-bold">TOTAL</td>
+          <td class="border px-2 py-1 font-bold" colspan="2">TOTAL</td>
           <td class="border px-2 py-1 font-bold" id="supp-total">0</td>
           <td></td>
         </tr>
@@ -158,122 +171,113 @@ function renderOrder(rec, existing = null) {
     </table>
   `;
 
-  // 7) Nếu Women's, thêm cảnh báo ở đầu
+  // Thêm cảnh báo nếu Women's
   if (useSizeFix) {
     html = `
       <div class="bg-yellow-200 text-yellow-800 p-2 mb-2 rounded">
-        ⚠️ CẢNH BÁO SIZE NỮ!! ĐÃ TỰ ĐỘNG GIẢM SIZE!! 
+        ⚠️ CẢNH BÁO SIZE NỮ!! ĐÃ TỰ ĐỘNG GIẢM SIZE!!
         <button onclick="cancelSizeFix()"
                 class="ml-4 bg-red-600 text-white px-2 py-1 rounded">
           Bỏ giảm size
         </button>
-      </div>
-    ` + html;
+      </div>` + html;
   }
 
-  // 8) Render và bind sự kiện
+  // Render ra giao diện
   const container = document.getElementById("size-table-container");
   container.innerHTML = html;
   container.classList.remove("hidden");
 
-  document.querySelectorAll(".input-supp").forEach(inp =>
-    inp.addEventListener("input", updateTotal)
-  );
+  // Sự kiện input tính tổng số thiếu
+  document.querySelectorAll(".input-supp").forEach(inp => {
+    inp.addEventListener("input", updateTotal);
+  });
   updateTotal();
-
   document.getElementById("btn-confirm-supplement").disabled = false;
 }
 
 
 
-// 👉 Bỏ giảm size (quay về bảng gốc)
+
+// 👉 Bỏ giảm size
 window.cancelSizeFix = () => {
   useSizeFix = false;
   renderOrder(rawRecord);
 };
 
-// 👉 Tính tổng số thiếu
+// 👉 Tính tổng thiếu
 function updateTotal() {
   const sum = [...document.querySelectorAll(".input-supp")]
     .reduce((acc, inp) => acc + Number(inp.value || 0), 0);
   document.getElementById("supp-total").textContent = sum;
 }
 
-// 👉 DOM Event
+// 👉 DOM events & QR init
 window.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("btn-back")?.addEventListener("click", () => window.location.href = "/");
-  document.getElementById("btn-supplement")?.addEventListener("click", () => window.location.href = "/supplement.html");
-  document.getElementById("btn-manual-ok")?.addEventListener("click", () => {
-    handleScanned(document.getElementById("manualRpro").value);
-  });
+  // Manual OK
+  document.getElementById("btn-manual-ok")
+    .addEventListener("click", () => handleScanned(document.getElementById("manualRpro").value));
 
-    document.getElementById("btn-confirm-supplement")?.addEventListener("click", async () => {
-    // 1) Chuẩn bị payload cơ bản
-    const payload = {
-      rpro: currentRpro,
-      so:   document.getElementById("info-so").textContent,
-      customers: document.getElementById("info-customers").textContent,
-      gender: document.getElementById("info-gender").textContent,
-      mold:   document.getElementById("info-mold").textContent,
-      tool:   document.getElementById("info-tool").textContent,
-      fabric: document.getElementById("info-fabric").textContent,
-      bom:    document.getElementById("info-bom").textContent,
-      total:  Number(document.getElementById("supp-total").textContent)
-    };
-
-    // 2) Lấy các giá trị số bù hàng
-    document.querySelectorAll(".input-supp").forEach(inp => {
-      const size = inp.dataset.size;
-      const qty  = Number(inp.value) || 0;
-      payload[normalizeSizeKey(size)] = qty;
-    });
-
-    // 3) Tính remark nếu Women's và có sizeFixData
-    let remark = "";
-    if (useSizeFix && sizeFixData) {
-      // 3.1) Xác định origSizes từ rawRecord
-      const idx      = headersArr.indexOf("CheckLL");
-      const allSizes = idx >= 0 ? headersArr.slice(idx + 1) : [];
-      const origSizes = allSizes.filter(sz =>
-        Number(rawRecord[sz]) > 0
-      );
-
-      // 3.2) Xây mảng fixEntries = [[femaleSize, fixQty], ...]
-      const fixEntries = Object.entries(sizeFixData)
-        .filter(([, qty]) => Number(qty) > 0)
-        .map(([s, qty]) => [s, Number(qty)])
-        .sort(([a], [b]) => parseFloat(a) - parseFloat(b));
-
-      // 3.3) Kiểm tra 3 dòng liên tiếp femaleSize ≠ origSize
-      let consec = 0;
-      for (let i = 0; i < origSizes.length; i++) {
-        const orig     = origSizes[i];
-        const female   = fixEntries[i]?.[0] || "";
-        if (female && female !== orig) {
-          consec++;
-          if (consec >= 3) {
-            remark = "Size fixed";
-            break;
-          }
+  // Confirm button
+  document.getElementById("btn-confirm-supplement")
+    .addEventListener("click", async () => {
+      const payload = {
+        rpro: currentRpro,
+        so:   document.getElementById("info-so").textContent,
+        customers: document.getElementById("info-customers").textContent,
+        gender: document.getElementById("info-gender").textContent,
+        mold: document.getElementById("info-mold").textContent,
+        tool: document.getElementById("info-tool").textContent,
+        fabric: document.getElementById("info-fabric").textContent,
+        bom: document.getElementById("info-bom").textContent,
+        total: Number(document.getElementById("supp-total").textContent)
+      };
+      document.querySelectorAll(".input-supp").forEach(inp => {
+        payload[normalizeSizeKey(inp.dataset.size)] = Number(inp.value) || 0;
+      });
+      try {
+        const { error } = await supabase
+          .from("supplement")
+          .upsert([payload], { onConflict: "rpro" });
+        if (error) throw error;
+        if (confirm("✅ Đã lưu bù hàng!\nBạn muốn nhập RPRO khác?")) {
+          window.location.reload();
         } else {
-          consec = 0;
+          window.location.href = "/";
         }
+      } catch (err) {
+        alert("Lỗi khi lưu: " + err.message);
       }
-    }
-    payload.remark = remark;
-
-    // 4) Upsert lên Supabase
-    try {
-      const { error } = await supabase
-        .from("supplement")
-        .upsert([payload], { onConflict: "rpro" });
-      if (error) throw error;
-
-      const again = window.confirm("✅ Đã lưu bù hàng!\nBạn muốn nhập RPRO khác?");
-      window.location.href = again ? window.location.href : "/";
-    } catch (err) {
-      alert("Lỗi khi lưu: " + err.message);
-    }
-  });
-
+    });
 });
+
+// Cho scanner dùng
+window.handleScanned = handleScanned;
+
+// 👉 Khởi động QR scanner khi Html5Qrcode đã sẵn sàng
+window.addEventListener("load", () => {
+  const container = document.getElementById("qr-reader");
+  if (!container) return;
+
+  // responsive qrbox theo container
+  const qrBoxSize = Math.min(container.offsetWidth * 0.7, container.offsetHeight * 0.7);
+
+  const html5QrCode = new Html5Qrcode("qr-reader");
+  html5QrCode.start(
+    { facingMode: "environment" },
+    {
+      fps: 10,
+      qrbox: { width: 200, height: 200 }, // khung vuông cố định giữa
+      aspectRatio: 1.3333
+    },
+    qrText => {
+      html5QrCode.stop().catch(console.error);
+      window.handleScanned(qrText);
+    },
+    err => {
+      // Giảm spam log
+    }
+  ).catch(err => console.error("Could not start scanner:", err));
+});
+
+

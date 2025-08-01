@@ -26,6 +26,64 @@ const progressSearchBox = document.getElementById('progressSearchBox');
 const progressBtnSearch = document.getElementById('progressBtnSearch');
 const progressBtnClear  = document.getElementById('progressBtnClear');
 
+// Xử lý khi quét QR Progress
+function handleProgressQR(text) {
+  const cleanText = (text || "").trim();
+  let rpro = "";
+
+  if (cleanText.includes("|")) {
+    // Nếu QR chứa SO|RPRO
+    const parts = cleanText.split("|");
+    const rproPart = parts.find(p => p.startsWith("RPRO"));
+    rpro = rproPart || cleanText;
+  } else {
+    // Nếu QR chỉ có 1 phần
+    if (cleanText.startsWith("RPRO")) {
+      rpro = cleanText;
+    } else {
+      alert("❌ Mã QR không hợp lệ: " + cleanText);
+      return;
+    }
+  }
+
+  // Gán vào ô tìm kiếm và tự động tìm kiếm
+  document.getElementById("progressSearchBox").value = rpro;
+  searchProgress();
+}
+
+// --- QR Scan for Progress View ---
+const progressBtnScan = document.getElementById('progressBtnScan');
+const progressQrReader = document.getElementById('progress-qr-reader');
+let html5QrScanner = null;
+
+progressBtnScan?.addEventListener('click', () => {
+  progressQrReader.classList.remove('hidden');
+
+  if (!html5QrScanner) {
+    html5QrScanner = new Html5Qrcode("progress-qr-reader");
+  }
+
+  html5QrScanner.start(
+    { facingMode: "environment" },
+    { fps: 10, qrbox: 200 },
+    (decodedText) => {
+      console.log("Scanned:", decodedText);
+      html5QrScanner.stop();
+      progressQrReader.classList.add('hidden');
+
+      // ✅ Gọi hàm xử lý để lấy RPRO
+      handleProgressQR(decodedText);
+    },
+    (errorMessage) => {
+      // Lỗi scan, bỏ qua
+    }
+  ).catch(err => {
+    console.error("QR start failed", err);
+  });
+});
+
+
+
 const delayErrorOnly = document.getElementById('delayErrorOnly');
 // Và biến lưu kiểu hiện tại của bảng Delay (DELAY hoặc URGENT):
 let currentDelayType = 'DELAY';
@@ -1116,4 +1174,7 @@ btnUrgentTab.addEventListener('click', () => {
 });
 delayErrorOnly.addEventListener('change', () => {
   loadDelayUrgentData(currentDelayType);
+});
+document.getElementById("btn-supplement")?.addEventListener("click", () => {
+  window.location.href = "/supplement.html";
 });
