@@ -175,7 +175,7 @@ function renderOrder(rec, existing = null) {
   if (useSizeFix) {
     html = `
       <div class="bg-yellow-200 text-yellow-800 p-2 mb-2 rounded">
-        ⚠️ CẢNH BÁO SIZE NỮ!! ĐÃ TỰ ĐỘNG GIẢM SIZE!!
+        ⚠️ CẢNH BÁO SIZE NỮ!! ĐÃ TỰ ĐỘNG GIẢM SIZE NẾU CÓ!!
         <button onclick="cancelSizeFix()"
                 class="ml-4 bg-red-600 text-white px-2 py-1 rounded">
           Bỏ giảm size
