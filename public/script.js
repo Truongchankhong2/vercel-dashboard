@@ -261,12 +261,12 @@ async function searchProgress() {
     const data = json.data;
 
     const fields = [
-      'PRO ODER', 'Brand Code', '#MOLD', 'BOM' ,'PU','FB', 'Total Qty', 'STATUS',
+      'PRO ODER', 'Finish date','Brand Code', '#MOLD', 'BOM' ,'PU','FB', 'Total Qty', 'STATUS',
       'RECEIVED (MATERIAL)', 'RECEIVED (LOGO)', 'Laminating (Pro)',
       'Prefitting (Pro)', 'Slipting (Pro)', 'Bào (Pro)',
       'Molding Pro (IN)', 'Molding Pro', 'IN lean Line (Pro)',
       'IN lean Line (MACHINE)', 'Out lean Line (Pro)',
-      'PACKING PRO', 'Packing date', 'Finish date', 'STORED'
+      'PACKING PRO', 'Packing date', 'STORED'
     ];
 
     const dateFields = [
