@@ -83,7 +83,7 @@
     <button id="btn-delay-urgent" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">Delay - Xuất gấp</button>
     <button id="btn-supplement" class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">Bù hàng</button>
     <button id="btn-refresh" class="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600">Refresh</button>
-    <span id="last-updated" class="ml-auto text-sm text-gray-600">Cập nhật: --:--:--</span>
+    
   </div>
 
   <!-- Tabs Delay/Xuất gấp -->
@@ -161,6 +161,9 @@
   <!-- Thư viện QR scan -->
   <script src="https://unpkg.com/html5-qrcode" defer></script>
   
+  <div class="text-sm text-gray-600 mt-2">
+    ⏱️ Lần cập nhật dữ liệu gần nhất: <span id="lastPushTime">Đang tải...</span>
+  </div>
 
 </body>
 </html>

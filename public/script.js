@@ -114,9 +114,6 @@ let currentView   = 'summary';
 let currentMachine = null;
 
 // --- Utility functions ---
-function updateTimestamp() {
-  lastUpdatedEl.textContent = 'Cập nhật: ' + new Date().toLocaleTimeString();
-}
 function hideSectionBar() {
   const sectionBarEl = document.getElementById('section-bar');
   if (sectionBarEl) sectionBarEl.innerHTML = '';
@@ -1177,3 +1174,15 @@ delayErrorOnly.addEventListener('change', () => {
 document.getElementById("btn-supplement")?.addEventListener("click", () => {
   window.location.href = "/supplement.html";
 });
+
+async function showLastPush() {
+  try {
+    const res = await fetch("/last_push.json?_=" + Date.now()); // tránh cache
+    const json = await res.json();
+    document.getElementById("lastPushTime").textContent = json.last_push;
+  } catch (e) {
+    document.getElementById("lastPushTime").textContent = "Chưa có dữ liệu!";
+  }
+}
+
+document.addEventListener("DOMContentLoaded", showLastPush);
