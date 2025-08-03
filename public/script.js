@@ -221,7 +221,7 @@ async function loadProgress() {
   hideDetails();
   container.innerHTML = '';
   searchResult.innerHTML = '';
-  updateTimestamp();
+  
   hideSectionBar();
   // Hiện thanh tìm kiếm Progress:
   showProgressSearchBar();
@@ -333,7 +333,7 @@ async function searchProgress() {
 
     html += '</tbody></table>';
     container.innerHTML = html;
-    updateTimestamp();
+    
 
   } catch (err) {
     console.error('[searchProgress error]', err);
