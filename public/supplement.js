@@ -221,11 +221,12 @@ window.addEventListener("DOMContentLoaded", () => {
   // Confirm button
   document.getElementById("btn-confirm-supplement")
     .addEventListener("click", async () => {
+      const genderVal = document.getElementById("info-gender").textContent.trim();
       const payload = {
         rpro: currentRpro,
-        so:   document.getElementById("info-so").textContent,
+        so: document.getElementById("info-so").textContent,
         customers: document.getElementById("info-customers").textContent,
-        gender: document.getElementById("info-gender").textContent,
+        gender: genderVal,
         mold: document.getElementById("info-mold").textContent,
         tool: document.getElementById("info-tool").textContent,
         fabric: document.getElementById("info-fabric").textContent,
