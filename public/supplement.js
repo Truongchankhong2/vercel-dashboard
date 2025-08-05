@@ -5,6 +5,8 @@ let headersArr = [];
 let useSizeFix = false;
 let rawRecord = null;
 let sizeFixData = null;
+let existingRecord = null;   // Lưu dữ liệu đã nhập trên Supabase
+
 
 // 👉 Chuyển size: "7.5" → "size_7_5"
 function normalizeSizeKey(size) {
@@ -42,11 +44,9 @@ function handleScanned(text) {
 // 👉 Load dữ liệu đơn hàng
 async function loadOrderInfo(rpro) {
   currentRpro = rpro;
-  useSizeFix = false;
-  rawRecord = null;
 
   const loadingEl = document.getElementById("loading-status");
-  loadingEl?.classList.remove("hidden");
+  if (loadingEl) loadingEl.classList.remove("hidden");
 
   try {
     const res = await fetch("/powerapp.json", { cache: "no-store" });
@@ -54,34 +54,54 @@ async function loadOrderInfo(rpro) {
     headersArr = headers;
 
     const rec = data.find(r => (r["PRO ODER"] || "") === rpro);
-    if (!rec) throw new Error("Không tìm thấy đơn " + rpro);
-    rawRecord = rec;
-
-    // Nếu Women's, thử fetch sizefix.json
-    const gender = rec["Giới tính"] || rec["GENDER"] || "";
-    if (gender === "Women's") {
-      const resFix = await fetch("/sizefix.json");
-      const fixJson = await resFix.json();
-      sizeFixData = fixJson[rpro] || null;
-      if (sizeFixData) useSizeFix = true;
+    if (!rec) {
+      alert("Không tìm thấy đơn " + rpro);
+      if (loadingEl) loadingEl.classList.add("hidden");
+      return;
     }
 
-    // Lấy dữ liệu đã lưu nếu có
-    const { data: existingRows } = await supabase
-      .from("supplement")
-      .select("*")
-      .eq("rpro", rpro)
-      .limit(1);
-    const existingData = existingRows?.[0] || null;
+    // ✅ Kiểm tra Gender
+    const gender = rec["Giới tính"] || rec["GENDER"] || "";
+    useSizeFix = false;
+    sizeFixData = {};
 
+    if (gender === "Women's") {
+      try {
+        const resFix = await fetch("/sizefix.json", { cache: "no-store" });
+        const sizefixJson = await resFix.json();
+        sizeFixData = sizefixJson[rpro] || {};
+        if (Object.keys(sizeFixData).length > 0) {
+          useSizeFix = true;
+        }
+      } catch (err) {
+        console.warn("Không thể tải sizefix.json:", err);
+      }
+    }
+
+    // ✅ Tìm dữ liệu đã lưu trên Supabase
+    const { data: existingRows } = await supabase
+      .from('supplement')
+      .select('*')
+      .eq('rpro', rpro)
+      .limit(1);
+
+    const existingData = (existingRows && existingRows.length > 0) ? existingRows[0] : null;
+
+    // ✅ Lưu lại dữ liệu gốc & dữ liệu cũ cho nút "Bỏ giảm size"
+    rawRecord = rec;               
+    existingRecord = existingData; 
+
+    // ✅ Render giao diện lần đầu
     renderOrder(rec, existingData);
+
   } catch (err) {
-    alert(err.message || "Lỗi khi tải dữ liệu");
-    console.error(err);
+    console.error("loadOrderInfo:", err);
+    alert("Lỗi khi tải dữ liệu, vui lòng thử lại.");
   } finally {
-    loadingEl?.classList.add("hidden");
+    if (loadingEl) loadingEl.classList.add("hidden");
   }
 }
+
 
 // 👉 Vẽ bảng size + metadata
 function renderOrder(rec, existing = null) {
