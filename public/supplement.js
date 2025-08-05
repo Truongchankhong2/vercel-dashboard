@@ -6,7 +6,7 @@ let useSizeFix = false;
 let rawRecord = null;
 let sizeFixData = null;
 let existingRecord = null;   // Lưu dữ liệu đã nhập trên Supabase
-
+let showSizeFixValues = true;
 
 // 👉 Chuyển size: "7.5" → "size_7_5"
 function normalizeSizeKey(size) {
