@@ -230,7 +230,8 @@ window.addEventListener("DOMContentLoaded", () => {
         tool: document.getElementById("info-tool").textContent,
         fabric: document.getElementById("info-fabric").textContent,
         bom: document.getElementById("info-bom").textContent,
-        total: Number(document.getElementById("supp-total").textContent)
+        total: Number(document.getElementById("supp-total").textContent),
+        remark: (genderVal === "Women's" && useSizeFix) ? "Size fixed" : "" // ✅ ghi chú
       };
       document.querySelectorAll(".input-supp").forEach(inp => {
         payload[normalizeSizeKey(inp.dataset.size)] = Number(inp.value) || 0;
