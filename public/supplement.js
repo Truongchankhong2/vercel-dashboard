@@ -266,21 +266,30 @@ window.addEventListener("DOMContentLoaded", () => {
 // Cho scanner dùng
 window.handleScanned = handleScanned;
 
-// 👉 Khởi động QR scanner
+// 👉 Khởi động QR scanner khi Html5Qrcode đã sẵn sàng
 window.addEventListener("load", () => {
   const container = document.getElementById("qr-reader");
   if (!container) return;
 
+  // responsive qrbox theo container
+  const qrBoxSize = Math.min(container.offsetWidth * 0.7, container.offsetHeight * 0.7);
+
   const html5QrCode = new Html5Qrcode("qr-reader");
   html5QrCode.start(
     { facingMode: "environment" },
-    { fps: 10, qrbox: { width: 200, height: 200 } },
+    {
+      fps: 10,
+      qrbox: { width: 200, height: 200 }, // khung vuông cố định giữa
+      aspectRatio: 1.3333
+    },
     qrText => {
       html5QrCode.stop().catch(console.error);
       window.handleScanned(qrText);
     },
-    err => {}
+    err => {
+      // Giảm spam log
+    }
   ).catch(err => console.error("Could not start scanner:", err));
 });
-// Gắn hàm vào window để gọi từ HTML
-window.cancelSizeFix = cancelSizeFix;
+
+
