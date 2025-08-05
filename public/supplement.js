@@ -2,11 +2,11 @@ import { supabase } from './supabaseClient.js';
 
 let currentRpro = null;
 let headersArr = [];
-let useSizeFix = false;
-let rawRecord = null;
-let sizeFixData = null;
-let existingRecord = null;   // Lưu dữ liệu đã nhập trên Supabase
-let showSizeFixValues = true;
+let useSizeFix = false;         // Có đang dùng sizeFix (Women's)
+let showSizeFixValues = true;   // Hiển thị số Size nữ hay không
+let rawRecord = null;           // Dữ liệu gốc
+let sizeFixData = {};           // Dữ liệu sizeFix
+let existingRecord = null;      // Dữ liệu đã nhập trên Supabase
 
 // 👉 Chuyển size: "7.5" → "size_7_5"
 function normalizeSizeKey(size) {
@@ -15,31 +15,22 @@ function normalizeSizeKey(size) {
 
 // 👉 Khi scan hoặc nhập tay
 function handleScanned(text) {
-  // Trim để loại bỏ khoảng trắng dư
   const cleanText = (text || "").trim();
-
   let rpro = "";
 
   if (cleanText.includes("|")) {
-    // Nếu QR chứa dấu |
     const parts = cleanText.split("|");
-    // Ưu tiên tìm phần tử có "RPRO"
     const rproPart = parts.find(p => p.startsWith("RPRO"));
     rpro = rproPart || cleanText;
+  } else if (cleanText.startsWith("RPRO")) {
+    rpro = cleanText;
   } else {
-    // QR không chứa |, kiểm tra có phải RPRO không
-    if (cleanText.startsWith("RPRO")) {
-      rpro = cleanText;
-    } else {
-      alert("❌ Mã QR không hợp lệ: " + cleanText);
-      return;
-    }
+    alert("❌ Mã QR không hợp lệ: " + cleanText);
+    return;
   }
 
-  // Gọi hàm load dữ liệu
   loadOrderInfo(rpro);
 }
-
 
 // 👉 Load dữ liệu đơn hàng
 async function loadOrderInfo(rpro) {
@@ -49,6 +40,7 @@ async function loadOrderInfo(rpro) {
   if (loadingEl) loadingEl.classList.remove("hidden");
 
   try {
+    // Lấy dữ liệu PowerApp
     const res = await fetch("/powerapp.json", { cache: "no-store" });
     const { headers, data } = await res.json();
     headersArr = headers;
@@ -60,9 +52,10 @@ async function loadOrderInfo(rpro) {
       return;
     }
 
-    // ✅ Kiểm tra Gender
+    // ✅ Kiểm tra Gender & load sizeFix
     const gender = rec["Giới tính"] || rec["GENDER"] || "";
     useSizeFix = false;
+    showSizeFixValues = true;
     sizeFixData = {};
 
     if (gender === "Women's") {
@@ -85,14 +78,13 @@ async function loadOrderInfo(rpro) {
       .eq('rpro', rpro)
       .limit(1);
 
-    const existingData = (existingRows && existingRows.length > 0) ? existingRows[0] : null;
+    existingRecord = (existingRows && existingRows.length > 0) ? existingRows[0] : null;
 
-    // ✅ Lưu lại dữ liệu gốc & dữ liệu cũ cho nút "Bỏ giảm size"
-    rawRecord = rec;               
-    existingRecord = existingData; 
+    // ✅ Lưu lại dữ liệu gốc
+    rawRecord = rec;
 
-    // ✅ Render giao diện lần đầu
-    renderOrder(rec, existingData);
+    // ✅ Render giao diện
+    renderOrder(rec, existingRecord);
 
   } catch (err) {
     console.error("loadOrderInfo:", err);
@@ -102,28 +94,18 @@ async function loadOrderInfo(rpro) {
   }
 }
 
-
 // 👉 Vẽ bảng size + metadata
-function cancelSizeFix() {
-  // Không tắt useSizeFix, chỉ ẩn số Size nữ
-  showSizeFixValues = false;  
-  renderOrder(rawRecord, existingRecord);
-}
-
 function renderOrder(rec, existing = null) {
-  rawRecord = rec;
-  existingRecord = existing;
-
   // Metadata
   document.getElementById("info-rpro").textContent = rec["PRO ODER"] || "";
-  document.getElementById("info-so").textContent   = rec["SO"] || rec["Sales Order"] || "";
+  document.getElementById("info-so").textContent = rec["SO"] || rec["Sales Order"] || "";
   document.getElementById("info-customers").textContent = rec["CUSTOMERS"] || "";
   const gender = rec["Giới tính"] || rec["GENDER"] || "";
   document.getElementById("info-gender").textContent = gender;
-  document.getElementById("info-mold").textContent   = rec["Mã Khuôn"] || rec["#MOLD"] || "";
-  document.getElementById("info-tool").textContent   = rec["Mã dao"]  || rec["#Last"]  || "";
+  document.getElementById("info-mold").textContent = rec["Mã Khuôn"] || rec["#MOLD"] || "";
+  document.getElementById("info-tool").textContent = rec["Mã dao"] || rec["#Last"] || "";
   document.getElementById("info-fabric").textContent = rec["Tên vải"] || rec["FB DESCRIPTION"] || "";
-  document.getElementById("info-bom").textContent    = rec["BOM"] || "";
+  document.getElementById("info-bom").textContent = rec["BOM"] || "";
   document.getElementById("order-info").classList.remove("hidden");
 
   // Xác định các cột size gốc
@@ -134,7 +116,7 @@ function renderOrder(rec, existing = null) {
   const originalData = rec;
   const femaleData = sizeFixData || {};
 
-  // Lọc & sắp xếp size gốc tăng dần, chỉ giữ size gốc có PO Quantity > 0
+  // Lọc & sắp xếp size gốc tăng dần
   const originalSizes = sizeKeys
     .filter(s => Number(originalData[s]) > 0)
     .map(s => parseFloat(s))
@@ -149,6 +131,7 @@ function renderOrder(rec, existing = null) {
     .sort((a, b) => a - b)
     .map(n => n.toString());
 
+  // Render table
   let html = `
     <table class="min-w-full border border-gray-300">
       <thead class="bg-gray-100">
@@ -162,7 +145,6 @@ function renderOrder(rec, existing = null) {
       <tbody>
   `;
 
-  // Lặp theo size gốc có số lượng > 0
   originalSizes.forEach((sizeOriginal, idx) => {
     const sizeFemale = (gender === "Women's" && femaleSizes[idx] && showSizeFixValues) 
                         ? femaleSizes[idx] 
@@ -170,8 +152,7 @@ function renderOrder(rec, existing = null) {
 
     const poQtyOriginal = Number(originalData[sizeOriginal]) || 0;
     const poQtyFemale = femaleSizes[idx] ? Number(femaleData[femaleSizes[idx]]) || 0 : 0;
-
-    const poQty = (gender === "Women's" && useSizeFix) ? poQtyFemale : poQtyOriginal;
+    const poQty = (gender === "Women's" && useSizeFix && showSizeFixValues) ? poQtyFemale : poQtyOriginal;
 
     const inputKey = sizeOriginal;
     const oldQty = existing?.[normalizeSizeKey(inputKey)] || "";
@@ -204,7 +185,7 @@ function renderOrder(rec, existing = null) {
   `;
 
   // Thêm cảnh báo nếu Women's
-  if (useSizeFix) {
+  if (useSizeFix && showSizeFixValues) {
     html = `
       <div class="bg-yellow-200 text-yellow-800 p-2 mb-2 rounded">
         ⚠️ CẢNH BÁO SIZE NỮ!! ĐÃ TỰ ĐỘNG GIẢM SIZE NẾU CÓ!!
@@ -228,13 +209,11 @@ function renderOrder(rec, existing = null) {
   document.getElementById("btn-confirm-supplement").disabled = false;
 }
 
-// 👉 Bỏ giảm size: giữ cột, xóa số liệu
-
-// 👉 Bỏ giảm size
-window.cancelSizeFix = () => {
-  useSizeFix = false;
-  renderOrder(rawRecord);
-};
+// 👉 Bỏ giảm size: giữ cột Size nữ nhưng ẩn số liệu
+function cancelSizeFix() {
+  showSizeFixValues = false;  
+  renderOrder(rawRecord, existingRecord);
+}
 
 // 👉 Tính tổng thiếu
 function updateTotal() {
@@ -263,7 +242,7 @@ window.addEventListener("DOMContentLoaded", () => {
         fabric: document.getElementById("info-fabric").textContent,
         bom: document.getElementById("info-bom").textContent,
         total: Number(document.getElementById("supp-total").textContent),
-        remark: (genderVal === "Women's" && useSizeFix) ? "Size fixed" : "" // ✅ ghi chú
+        remark: (genderVal === "Women's" && useSizeFix && showSizeFixValues) ? "Size fixed" : ""
       };
       document.querySelectorAll(".input-supp").forEach(inp => {
         payload[normalizeSizeKey(inp.dataset.size)] = Number(inp.value) || 0;
@@ -287,30 +266,19 @@ window.addEventListener("DOMContentLoaded", () => {
 // Cho scanner dùng
 window.handleScanned = handleScanned;
 
-// 👉 Khởi động QR scanner khi Html5Qrcode đã sẵn sàng
+// 👉 Khởi động QR scanner
 window.addEventListener("load", () => {
   const container = document.getElementById("qr-reader");
   if (!container) return;
 
-  // responsive qrbox theo container
-  const qrBoxSize = Math.min(container.offsetWidth * 0.7, container.offsetHeight * 0.7);
-
   const html5QrCode = new Html5Qrcode("qr-reader");
   html5QrCode.start(
     { facingMode: "environment" },
-    {
-      fps: 10,
-      qrbox: { width: 200, height: 200 }, // khung vuông cố định giữa
-      aspectRatio: 1.3333
-    },
+    { fps: 10, qrbox: { width: 200, height: 200 } },
     qrText => {
       html5QrCode.stop().catch(console.error);
       window.handleScanned(qrText);
     },
-    err => {
-      // Giảm spam log
-    }
+    err => {}
   ).catch(err => console.error("Could not start scanner:", err));
 });
-
-
