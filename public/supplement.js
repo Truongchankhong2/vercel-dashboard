@@ -104,7 +104,16 @@ async function loadOrderInfo(rpro) {
 
 
 // 👉 Vẽ bảng size + metadata
+function cancelSizeFix() {
+  // Không tắt useSizeFix, chỉ ẩn số Size nữ
+  showSizeFixValues = false;  
+  renderOrder(rawRecord, existingRecord);
+}
+
 function renderOrder(rec, existing = null) {
+  rawRecord = rec;
+  existingRecord = existing;
+
   // Metadata
   document.getElementById("info-rpro").textContent = rec["PRO ODER"] || "";
   document.getElementById("info-so").textContent   = rec["SO"] || rec["Sales Order"] || "";
@@ -155,11 +164,14 @@ function renderOrder(rec, existing = null) {
 
   // Lặp theo size gốc có số lượng > 0
   originalSizes.forEach((sizeOriginal, idx) => {
-    const sizeFemale = (gender === "Women's" && femaleSizes[idx]) ? femaleSizes[idx] : "";
-    const poQtyOriginal = Number(originalData[sizeOriginal]) || 0;
-    const poQtyFemale = sizeFemale ? Number(femaleData[sizeFemale]) || 0 : 0;
+    const sizeFemale = (gender === "Women's" && femaleSizes[idx] && showSizeFixValues) 
+                        ? femaleSizes[idx] 
+                        : "";
 
-    const poQty = (gender === "Women's") ? poQtyFemale : poQtyOriginal;
+    const poQtyOriginal = Number(originalData[sizeOriginal]) || 0;
+    const poQtyFemale = femaleSizes[idx] ? Number(femaleData[femaleSizes[idx]]) || 0 : 0;
+
+    const poQty = (gender === "Women's" && useSizeFix) ? poQtyFemale : poQtyOriginal;
 
     const inputKey = sizeOriginal;
     const oldQty = existing?.[normalizeSizeKey(inputKey)] || "";
@@ -190,10 +202,6 @@ function renderOrder(rec, existing = null) {
       </tfoot>
     </table>
   `;
-function cancelSizeFix() {
-  useSizeFix = false;
-  renderOrder(rawRecord, existingRecord);
-}
 
   // Thêm cảnh báo nếu Women's
   if (useSizeFix) {
@@ -220,8 +228,7 @@ function cancelSizeFix() {
   document.getElementById("btn-confirm-supplement").disabled = false;
 }
 
-
-
+// 👉 Bỏ giảm size: giữ cột, xóa số liệu
 
 // 👉 Bỏ giảm size
 window.cancelSizeFix = () => {
