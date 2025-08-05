@@ -291,5 +291,7 @@ window.addEventListener("load", () => {
     }
   ).catch(err => console.error("Could not start scanner:", err));
 });
+// Gắn hàm vào window để gọi từ HTML
+window.cancelSizeFix = cancelSizeFix;
 
 
