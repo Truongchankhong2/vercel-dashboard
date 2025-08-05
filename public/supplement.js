@@ -293,5 +293,5 @@ window.addEventListener("load", () => {
 });
 // Gắn hàm vào window để gọi từ HTML
 window.cancelSizeFix = cancelSizeFix;
-
+``
 
