@@ -170,6 +170,10 @@ function renderOrder(rec, existing = null) {
       </tfoot>
     </table>
   `;
+function cancelSizeFix() {
+  useSizeFix = false;
+  renderOrder(rawRecord, existingRecord);
+}
 
   // Thêm cảnh báo nếu Women's
   if (useSizeFix) {
