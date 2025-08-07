@@ -232,6 +232,7 @@ window.addEventListener("DOMContentLoaded", () => {
   document.getElementById("btn-confirm-supplement")
     .addEventListener("click", async () => {
       const genderVal = document.getElementById("info-gender").textContent.trim();
+      const remarkNote = document.getElementById("note-textarea").value.trim();
       const payload = {
         rpro: currentRpro,
         so: document.getElementById("info-so").textContent,
@@ -242,7 +243,8 @@ window.addEventListener("DOMContentLoaded", () => {
         fabric: document.getElementById("info-fabric").textContent,
         bom: document.getElementById("info-bom").textContent,
         total: Number(document.getElementById("supp-total").textContent),
-        remark: (genderVal === "Women's" && useSizeFix && showSizeFixValues) ? "Size fixed" : ""
+        remark: (genderVal === "Women's" && useSizeFix && showSizeFixValues) ? "Size fixed" : "",
+        remark2: remarkNote
       };
       document.querySelectorAll(".input-supp").forEach(inp => {
         payload[normalizeSizeKey(inp.dataset.size)] = Number(inp.value) || 0;
