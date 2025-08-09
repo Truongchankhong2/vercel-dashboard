@@ -1,5 +1,18 @@
 import { supabase } from './supabaseClient.js';
 
+
+// Hàm ghi nhận lượt
+async function logVisit(page, button = null) {
+  const today = new Date().toISOString().slice(0, 10); // yyyy-mm-dd
+
+  await supabase.rpc('increment_visit', {
+    p_date: today,
+    p_page: page,
+    p_button: button
+  });
+}
+
+
 let currentRpro = null;
 let headersArr = [];
 let useSizeFix = false;         // Có đang dùng sizeFix (Women's)
@@ -224,6 +237,7 @@ function updateTotal() {
 
 // 👉 DOM events & QR init
 window.addEventListener("DOMContentLoaded", () => {
+  logVisit("supplement"); // Đếm lượt vào trang
   // Manual OK
   document.getElementById("btn-manual-ok")
     .addEventListener("click", () => handleScanned(document.getElementById("manualRpro").value));
