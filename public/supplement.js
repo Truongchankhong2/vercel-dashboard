@@ -295,5 +295,21 @@ window.addEventListener("load", () => {
 });
 // Gắn hàm vào window để gọi từ HTML
 window.cancelSizeFix = cancelSizeFix;
-``
+// Lấy ngày theo múi giờ VN (UTC+7) dạng YYYY-MM-DD
+function todayVN() {
+  const now = new Date();
+  const tzOffset = 7 * 60; // phút
+  const local = new Date(now.getTime() + (tzOffset - now.getTimezoneOffset())*60000);
+  return local.toISOString().slice(0,10);
+}
+
+async function trackClick(buttonId) {
+  const visitDate = todayVN();
+  const { error } = await supabase.rpc('increment_visit', {
+    p_button_id: buttonId,
+    p_visit_date: visitDate
+  });
+  if (error) console.error('increment_visit error:', error);
+}
+
 
