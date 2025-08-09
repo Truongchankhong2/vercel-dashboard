@@ -245,6 +245,7 @@ window.addEventListener("DOMContentLoaded", () => {
   // Confirm button
   document.getElementById("btn-confirm-supplement")
     .addEventListener("click", async () => {
+      await logVisit("supplement", "confirm");
       const genderVal = document.getElementById("info-gender").textContent.trim();
       const remarkNote = document.getElementById("note-textarea").value.trim();
       const payload = {
