@@ -7,6 +7,23 @@ let showSizeFixValues = true;   // Hiển thị số Size nữ hay không
 let rawRecord = null;           // Dữ liệu gốc
 let sizeFixData = {};           // Dữ liệu sizeFix
 let existingRecord = null;      // Dữ liệu đã nhập trên Supabase
+async function logVisit(page, button = null) {
+  const today = new Date().toISOString().slice(0, 10); // yyyy-mm-dd
+  await supabase
+    .from('visit')
+    .upsert([{ date: today, page, button, count: 1 }], {
+      onConflict: 'date,page,button',
+      ignoreDuplicates: false
+    })
+    .select(); // Có thể bỏ nếu không cần trả dữ liệu
+
+  // Tăng count thêm 1
+  await supabase.rpc('increment_visit', {
+    p_date: today,
+    p_page: page,
+    p_button: button
+  });
+}
 
 // 👉 Chuyển size: "7.5" → "size_7_5"
 function normalizeSizeKey(size) {
@@ -224,6 +241,7 @@ function updateTotal() {
 
 // 👉 DOM events & QR init
 window.addEventListener("DOMContentLoaded", () => {
+  await logVisit('supplement'); // Ghi nhận lượt vào trang
   // Manual OK
   document.getElementById("btn-manual-ok")
     .addEventListener("click", () => handleScanned(document.getElementById("manualRpro").value));
@@ -295,21 +313,5 @@ window.addEventListener("load", () => {
 });
 // Gắn hàm vào window để gọi từ HTML
 window.cancelSizeFix = cancelSizeFix;
-// Lấy ngày theo múi giờ VN (UTC+7) dạng YYYY-MM-DD
-function todayVN() {
-  const now = new Date();
-  const tzOffset = 7 * 60; // phút
-  const local = new Date(now.getTime() + (tzOffset - now.getTimezoneOffset())*60000);
-  return local.toISOString().slice(0,10);
-}
-
-async function trackClick(buttonId) {
-  const visitDate = todayVN();
-  const { error } = await supabase.rpc('increment_visit', {
-    p_button_id: buttonId,
-    p_visit_date: visitDate
-  });
-  if (error) console.error('increment_visit error:', error);
-}
 
 
