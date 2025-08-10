@@ -1,3 +1,11 @@
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+// Khai báo Supabase
+const supabaseUrl = 'https://ixdtdrbytwdmnlqgunzu.supabase.co'; // URL của bạn
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4ZHRkcmJ5dHdkbW5scWd1bnp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMyMzkyODYsImV4cCI6MjA2ODgxNTI4Nn0.5FLdLDf0d1yA70UBmAbJYW95kVWdta31QmEjm9oX4jg'; // Anon key từ Supabase
+export const supabase = createClient(supabaseUrl, supabaseKey);
+
+
 // --- DOM elements chung ---
 const container        = document.getElementById('table-container');
 const detailsContainer = document.getElementById('details-container');
@@ -1186,3 +1194,26 @@ async function showLastPush() {
 }
 
 document.addEventListener("DOMContentLoaded", showLastPush);
+
+
+// === Import supabase client ===
+
+// === Hàm ghi nhận lượt truy cập ===
+async function logVisit(page, button) {
+    const today = new Date().toISOString().slice(0, 10);
+    const { error } = await supabase.rpc('increment_visit', {
+        p_date: today,
+        p_page: page,
+        p_button: button
+    });
+    if (error) {
+        console.error(`logVisit error for page=${page}, button=${button}:`, error);
+    } else {
+        console.log(`Visit logged: ${page} - ${button}`);
+    }
+}
+
+// Ghi nhận khi mở trang Summary View
+logVisit('Summary View', 'page-load');
+logVisit('Progress', 'page-load');
+logVisit('Delay-Xuất gấp', 'page-load');

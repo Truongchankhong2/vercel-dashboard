@@ -1,18 +1,6 @@
 import { supabase } from './supabaseClient.js';
 
 
-// Hàm ghi nhận lượt
-async function logVisit(page, button = null) {
-  const today = new Date().toISOString().slice(0, 10); // yyyy-mm-dd
-
-  await supabase.rpc('increment_visit', {
-    p_date: today,
-    p_page: page,
-    p_button: button
-  });
-}
-
-
 let currentRpro = null;
 let headersArr = [];
 let useSizeFix = false;         // Có đang dùng sizeFix (Women's)
@@ -20,6 +8,25 @@ let showSizeFixValues = true;   // Hiển thị số Size nữ hay không
 let rawRecord = null;           // Dữ liệu gốc
 let sizeFixData = {};           // Dữ liệu sizeFix
 let existingRecord = null;      // Dữ liệu đã nhập trên Supabase
+
+// 👉 Hàm ghi lượt truy cập vào bảng visit
+async function logVisit(page, button = null) {
+  const today = new Date().toISOString().slice(0, 10); // yyyy-mm-dd
+
+  const { data, error } = await supabase.rpc('increment_visit', {
+  p_date: today,
+  p_page: page || '',
+  p_button: button || 'unknown'
+});
+
+
+
+  if (error) {
+    console.error(`❌ logVisit error for page=${page}, button=${button}:`, error);
+  } else {
+    console.log(`✅ logVisit success for page=${page}, button=${button}`, data);
+  }
+}
 
 // 👉 Chuyển size: "7.5" → "size_7_5"
 function normalizeSizeKey(size) {
@@ -53,7 +60,6 @@ async function loadOrderInfo(rpro) {
   if (loadingEl) loadingEl.classList.remove("hidden");
 
   try {
-    // Lấy dữ liệu PowerApp
     const res = await fetch("/powerapp.json", { cache: "no-store" });
     const { headers, data } = await res.json();
     headersArr = headers;
@@ -65,7 +71,6 @@ async function loadOrderInfo(rpro) {
       return;
     }
 
-    // ✅ Kiểm tra Gender & load sizeFix
     const gender = rec["Giới tính"] || rec["GENDER"] || "";
     useSizeFix = false;
     showSizeFixValues = true;
@@ -84,7 +89,6 @@ async function loadOrderInfo(rpro) {
       }
     }
 
-    // ✅ Tìm dữ liệu đã lưu trên Supabase
     const { data: existingRows } = await supabase
       .from('supplement')
       .select('*')
@@ -92,11 +96,8 @@ async function loadOrderInfo(rpro) {
       .limit(1);
 
     existingRecord = (existingRows && existingRows.length > 0) ? existingRows[0] : null;
-
-    // ✅ Lưu lại dữ liệu gốc
     rawRecord = rec;
 
-    // ✅ Render giao diện
     renderOrder(rec, existingRecord);
 
   } catch (err) {
@@ -109,7 +110,6 @@ async function loadOrderInfo(rpro) {
 
 // 👉 Vẽ bảng size + metadata
 function renderOrder(rec, existing = null) {
-  // Metadata
   document.getElementById("info-rpro").textContent = rec["PRO ODER"] || "";
   document.getElementById("info-so").textContent = rec["SO"] || rec["Sales Order"] || "";
   document.getElementById("info-customers").textContent = rec["CUSTOMERS"] || "";
@@ -121,15 +121,12 @@ function renderOrder(rec, existing = null) {
   document.getElementById("info-bom").textContent = rec["BOM"] || "";
   document.getElementById("order-info").classList.remove("hidden");
 
-  // Xác định các cột size gốc
   const idx = headersArr.indexOf("CheckLL");
   const sizeKeys = idx >= 0 ? headersArr.slice(idx + 1) : [];
 
-  // Dữ liệu gốc & size nữ
   const originalData = rec;
   const femaleData = sizeFixData || {};
 
-  // Lọc & sắp xếp size gốc tăng dần
   const originalSizes = sizeKeys
     .filter(s => Number(originalData[s]) > 0)
     .map(s => parseFloat(s))
@@ -137,14 +134,12 @@ function renderOrder(rec, existing = null) {
     .sort((a, b) => a - b)
     .map(n => n.toString());
 
-  // Sắp xếp size nữ tăng dần
   const femaleSizes = Object.keys(femaleData)
     .map(s => parseFloat(s))
     .filter(n => !isNaN(n))
     .sort((a, b) => a - b)
     .map(n => n.toString());
 
-  // Render table
   let html = `
     <table class="min-w-full border border-gray-300">
       <thead class="bg-gray-100">
@@ -197,7 +192,6 @@ function renderOrder(rec, existing = null) {
     </table>
   `;
 
-  // Thêm cảnh báo nếu Women's
   if (useSizeFix && showSizeFixValues) {
     html = `
       <div class="bg-yellow-200 text-yellow-800 p-2 mb-2 rounded">
@@ -209,12 +203,10 @@ function renderOrder(rec, existing = null) {
       </div>` + html;
   }
 
-  // Render ra giao diện
   const container = document.getElementById("size-table-container");
   container.innerHTML = html;
   container.classList.remove("hidden");
 
-  // Sự kiện input tính tổng số thiếu
   document.querySelectorAll(".input-supp").forEach(inp => {
     inp.addEventListener("input", updateTotal);
   });
@@ -222,13 +214,11 @@ function renderOrder(rec, existing = null) {
   document.getElementById("btn-confirm-supplement").disabled = false;
 }
 
-// 👉 Bỏ giảm size: giữ cột Size nữ nhưng ẩn số liệu
 function cancelSizeFix() {
   showSizeFixValues = false;  
   renderOrder(rawRecord, existingRecord);
 }
 
-// 👉 Tính tổng thiếu
 function updateTotal() {
   const sum = [...document.querySelectorAll(".input-supp")]
     .reduce((acc, inp) => acc + Number(inp.value || 0), 0);
@@ -237,15 +227,14 @@ function updateTotal() {
 
 // 👉 DOM events & QR init
 window.addEventListener("DOMContentLoaded", () => {
-  logVisit("supplement"); // Đếm lượt vào trang
-  // Manual OK
+  // Log visit khi vừa mở trang
+  logVisit("Supplement");
+
   document.getElementById("btn-manual-ok")
     .addEventListener("click", () => handleScanned(document.getElementById("manualRpro").value));
 
-  // Confirm button
   document.getElementById("btn-confirm-supplement")
     .addEventListener("click", async () => {
-      await logVisit("supplement", "confirm");
       const genderVal = document.getElementById("info-gender").textContent.trim();
       const remarkNote = document.getElementById("note-textarea").value.trim();
       const payload = {
@@ -269,6 +258,10 @@ window.addEventListener("DOMContentLoaded", () => {
           .from("supplement")
           .upsert([payload], { onConflict: "rpro" });
         if (error) throw error;
+
+        // Log thêm khi bấm nút Confirm
+        logVisit("Supplement", "Confirm");
+
         if (confirm("✅ Đã lưu bù hàng!\nBạn muốn nhập RPRO khác?")) {
           window.location.reload();
         } else {
@@ -280,35 +273,20 @@ window.addEventListener("DOMContentLoaded", () => {
     });
 });
 
-// Cho scanner dùng
 window.handleScanned = handleScanned;
+window.cancelSizeFix = cancelSizeFix;
 
-// 👉 Khởi động QR scanner khi Html5Qrcode đã sẵn sàng
 window.addEventListener("load", () => {
   const container = document.getElementById("qr-reader");
   if (!container) return;
 
-  // responsive qrbox theo container
-  const qrBoxSize = Math.min(container.offsetWidth * 0.7, container.offsetHeight * 0.7);
-
   const html5QrCode = new Html5Qrcode("qr-reader");
   html5QrCode.start(
     { facingMode: "environment" },
-    {
-      fps: 10,
-      qrbox: { width: 200, height: 200 }, // khung vuông cố định giữa
-      aspectRatio: 1.3333
-    },
+    { fps: 10, qrbox: { width: 200, height: 200 }, aspectRatio: 1.3333 },
     qrText => {
       html5QrCode.stop().catch(console.error);
       window.handleScanned(qrText);
-    },
-    err => {
-      // Giảm spam log
     }
   ).catch(err => console.error("Could not start scanner:", err));
 });
-// Gắn hàm vào window để gọi từ HTML
-window.cancelSizeFix = cancelSizeFix;
-
-
