@@ -116,7 +116,7 @@ function renderOrder(rec, existing = null) {
   const gender = rec["Giới tính"] || rec["GENDER"] || "";
   document.getElementById("info-gender").textContent = gender;
   document.getElementById("info-mold").textContent = rec["Mã Khuôn"] || rec["#MOLD"] || "";
-  document.getElementById("info-tool").textContent = rec["Mã dao"] || rec["#Last"] || "";
+  document.getElementById("info-pu").textContent = rec["Mã dao"] || rec["PU"] || "";
   document.getElementById("info-fabric").textContent = rec["Tên vải"] || rec["FB DESCRIPTION"] || "";
   document.getElementById("info-bom").textContent = rec["BOM"] || "";
   document.getElementById("order-info").classList.remove("hidden");
@@ -243,7 +243,7 @@ window.addEventListener("DOMContentLoaded", () => {
         customers: document.getElementById("info-customers").textContent,
         gender: genderVal,
         mold: document.getElementById("info-mold").textContent,
-        tool: document.getElementById("info-tool").textContent,
+        pu: document.getElementById("info-pu").textContent,
         fabric: document.getElementById("info-fabric").textContent,
         bom: document.getElementById("info-bom").textContent,
         total: Number(document.getElementById("supp-total").textContent),
