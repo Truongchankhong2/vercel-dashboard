@@ -3,7 +3,7 @@
 import { supabase } from "./supabaseClient.js";
 import fs from "fs";
 import path from "path";
-import fetch from "node-fetch";   // dùng fetch ổn định trong Node
+import fetch from "node-fetch/dist/index.js";
 
 // Thư mục local để lưu dữ liệu và ảnh
 const SAVE_DIR = "C:/Users/prod.public/Desktop/SUPPLEMENT QR DATA";
