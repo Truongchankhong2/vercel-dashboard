@@ -28,10 +28,6 @@ async function syncFromSupabase() {
       return;
     }
 
-    // Lưu JSON backup
-    const filePath = path.join(SAVE_DIR, `supplement_scans_${Date.now()}.json`);
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
-    console.log(`✅ Đã tải ${data.length} record -> ${filePath}`);
 
     // Tải từng ảnh từ Supabase Storage
     for (const row of data) {

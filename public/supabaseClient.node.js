@@ -1,5 +1,5 @@
 // Supabase client cho Node
-import { supabase } from "./supabaseClient.node.js";
+import { createClient } from "@supabase/supabase-js";
 
 
 const SUPABASE_URL = "https://ixdtdrbytwdmnlqgunzu.supabase.co";
