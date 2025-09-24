@@ -4,58 +4,48 @@ import { supabase } from "./supabaseClient.js";
 let currentBox = null;
 let bagList = [];
 let scanMode = "box"; // mặc định quét thùng
+let localStream = null;
 
 const status = document.getElementById("scan-status");
 const btnSave = document.getElementById("btn-save");
 const btnScanBox = document.getElementById("btn-scan-box");
 const btnScanBag = document.getElementById("btn-scan-bag");
-const btnCapture = document.getElementById("btn-capture");
+
+const qrReaderEl = document.getElementById("qr-reader");
+const photoSection = document.getElementById("photo-section");
+const photoVideo = document.getElementById("photo-video");
+const photoCanvas = document.getElementById("photo-canvas");
+const btnTakePhoto = document.getElementById("btn-take-photo");
+
+let qrScanner = null;
 
 window.addEventListener("load", () => {
-  const qrScanner = new Html5Qrcode("qr-reader");
-
-  function startScanner() {
-    qrScanner.start(
-      { facingMode: "environment" },
-      { fps: 10, qrbox: { width: 200, height: 200 }, aspectRatio: 1.3333 },
-      qrText => {
-        qrScanner.stop().catch(console.error);
-        if (scanMode === "box") handleBoxQR(qrText);
-        else if (scanMode === "bag") handleBagQR(qrText);
-
-        // bật lại sau 1s để quét tiếp
-        setTimeout(startScanner, 1000);
-      }
-    ).catch(err => console.error("Scan error:", err));
-  }
-
+  qrScanner = new Html5Qrcode("qr-reader");
   startScanner();
 });
 
+function startScanner() {
+  qrScanner
+    .start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: { width: 200, height: 200 }, aspectRatio: 1.3333 },
+      (qrText) => {
+        qrScanner.stop().catch(console.error);
+        if (scanMode === "box") handleBoxQR(qrText);
+        else if (scanMode === "bag") handleBagQR(qrText);
+      }
+    )
+    .catch((err) => console.error("Scan error:", err));
+}
+
 // === Chuyển chế độ quét Thùng ===
 btnScanBox.addEventListener("click", () => {
-  if (currentBox) {
-    const bagTarget = parseInt(document.getElementById("input-bag-count").value);
-    if (bagList.length < bagTarget) {
-      alert("❌ Scan chưa đủ số bịch bù yêu cầu!");
-      return;
-    }
-  }
-
   scanMode = "box";
   bagList = []; // reset danh sách bịch
   renderBagTable();
 
-  btnScanBox.disabled = true;
-  btnScanBox.classList.add("opacity-50");
-  btnScanBox.textContent = "⏳ Đang quét thùng...";
   status.classList.remove("hidden");
   status.textContent = "📦 Chế độ quét thùng";
-  setTimeout(() => {
-    btnScanBox.disabled = false;
-    btnScanBox.classList.remove("opacity-50");
-    btnScanBox.textContent = "Scan QR Thùng";
-  }, 800);
 });
 
 // === Chuyển chế độ quét Bịch ===
@@ -63,29 +53,18 @@ btnScanBag.addEventListener("click", () => {
   if (!currentBox) return alert("❌ Chưa scan thùng!");
 
   const bagTarget = parseInt(document.getElementById("input-bag-count").value);
-
   if (!bagTarget) {
     alert("❌ Vui lòng nhập số bịch bù trước khi scan bịch!");
     return;
   }
 
   scanMode = "bag";
-
-  btnScanBag.disabled = true;
-  btnScanBag.classList.add("opacity-50");
-  btnScanBag.textContent = "⏳ Đang quét bịch...";
   status.classList.remove("hidden");
   status.textContent = "🛍️ Chế độ quét bịch";
-  setTimeout(() => {
-    btnScanBag.disabled = false;
-    btnScanBag.classList.remove("opacity-50");
-    btnScanBag.textContent = "Scan QR Bịch";
-  }, 800);
 });
 
 // === Xử lý QR Thùng ===
 async function handleBoxQR(qr) {
-  status.classList.remove("hidden");
   status.textContent = "🔄 Đang xử lý QR thùng...";
 
   const parts = qr.split("|");
@@ -94,7 +73,7 @@ async function handleBoxQR(qr) {
 
   const res = await fetch("/powerapp.json");
   const { data } = await res.json();
-  const rec = data.find(r => r["PRO ODER"] === rpro);
+  const rec = data.find((r) => r["PRO ODER"] === rpro);
 
   if (!rec) {
     status.textContent = "❌ Không tìm thấy đơn cho " + rpro;
@@ -117,6 +96,9 @@ async function handleBoxQR(qr) {
     <p><b>FB:</b> ${rec["FB"]}</p>
   `;
   infoDiv.classList.remove("hidden");
+
+  // Quay lại scanner
+  setTimeout(startScanner, 800);
 }
 
 // === Xử lý QR Bịch ===
@@ -137,22 +119,27 @@ function handleBagQR(qr) {
     return;
   }
 
-  // Kiểm tra trùng bịch
-  const isDuplicate = bagList.some(b => b.rpro === rpro && b.boxNo === boxNo && b.bagNo === bagNo);
+  const isDuplicate = bagList.some(
+    (b) => b.rpro === rpro && b.boxNo === boxNo && b.bagNo === bagNo
+  );
   if (isDuplicate) {
     status.textContent = `⚠️ Bịch ${bagNo} đã được quét trước đó!`;
     return;
   }
 
   bagList.push({
-    rpro, boxNo, bagNo,
+    rpro,
+    boxNo,
+    bagNo,
     photoBlob: null,
-    photoStatus: "❌ Chưa chụp"
+    photoStatus: "❌ Chưa chụp",
   });
-
 
   renderBagTable();
   status.textContent = `✅ Đã thêm bịch ${bagNo} (${bagList.length}/${bagTarget})`;
+
+  // 👉 Sau khi thêm bịch → chuyển sang chụp ảnh
+  startPhotoMode(bagList.length - 1);
 }
 
 // === Render bảng bịch ===
@@ -165,61 +152,56 @@ function renderBagTable() {
         <td class="border px-2">${b.rpro}</td>
         <td class="border px-2">${b.boxNo}</td>
         <td class="border px-2">${b.bagNo}</td>
-        <td class="border px-2">${b.photoStatus}
-          <button class="ml-2 text-blue-600 underline" onclick="captureForBag(${idx})">📷</button>
-        </td>
+        <td class="border px-2">${b.photoStatus}</td>
       </tr>`;
   });
   document.getElementById("bag-table").classList.remove("hidden");
 }
 
-// === Bổ sung ảnh cho từng bịch ===
-window.captureForBag = function(index) {
-  const input = document.createElement("input");
-  input.type = "file";
-  input.accept = "image/*";
-  input.onchange = e => {
-    const file = e.target.files[0];
-    if (!file) return;
+// === Photo Mode ===
+async function startPhotoMode(bagIndex) {
+  qrReaderEl.classList.add("hidden");
+  photoSection.classList.remove("hidden");
 
-    bagList[index].photoBlob = file;
-    bagList[index].photoStatus = "✅ Đã chụp ảnh";
+  try {
+    localStream = await navigator.mediaDevices.getUserMedia({ video: true });
+    photoVideo.srcObject = localStream;
 
-    renderBagTable();
-  };
-  input.click();
-};
-
-// === Chụp ảnh cho bịch cuối ===
-btnCapture.addEventListener("click", () => {
-  if (bagList.length === 0) {
-    alert("❌ Chưa có bịch nào để chụp ảnh!");
-    return;
+    btnTakePhoto.onclick = () => {
+      capturePhoto(bagIndex);
+    };
+  } catch (err) {
+    console.error("Camera error:", err);
+    alert("Không mở được camera chụp ảnh");
   }
+}
 
-  btnCapture.disabled = true;
-  btnCapture.classList.add("opacity-50");
-  btnCapture.textContent = "⏳ Đang chọn ảnh...";
+function capturePhoto(bagIndex) {
+  const ctx = photoCanvas.getContext("2d");
+  photoCanvas.width = photoVideo.videoWidth;
+  photoCanvas.height = photoVideo.videoHeight;
+  ctx.drawImage(photoVideo, 0, 0, photoCanvas.width, photoCanvas.height);
 
-  const input = document.createElement("input");
-  input.type = "file";
-  input.accept = "image/*";
-  input.onchange = e => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    let lastBag = bagList[bagList.length - 1];
-    lastBag.photoBlob = file;
-    lastBag.photoStatus = "✅ Đã chụp ảnh";
-
+  photoCanvas.toBlob((blob) => {
+    bagList[bagIndex].photoBlob = blob;
+    bagList[bagIndex].photoStatus = "✅ Đã chụp ảnh";
     renderBagTable();
 
-    btnCapture.disabled = false;
-    btnCapture.classList.remove("opacity-50");
-    btnCapture.textContent = "Chụp ảnh bịch";
-  };
-  input.click();
-});
+    // Dừng camera
+    if (localStream) localStream.getTracks().forEach((t) => t.stop());
+
+    const bagTarget = parseInt(document.getElementById("input-bag-count").value);
+    if (bagList.length < bagTarget) {
+      photoSection.classList.add("hidden");
+      qrReaderEl.classList.remove("hidden");
+      setTimeout(startScanner, 800);
+    } else {
+      status.textContent = `🎉 Hoàn tất ${bagList.length}/${bagTarget} bịch`;
+      photoSection.classList.add("hidden");
+      btnSave.classList.remove("hidden");
+    }
+  }, "image/jpeg");
+}
 
 // === Lưu Supabase ===
 btnSave.addEventListener("click", async () => {
@@ -228,60 +210,49 @@ btnSave.addEventListener("click", async () => {
     return;
   }
 
-  // Lấy lại số bịch bù từ input
   const bagTarget = parseInt(document.getElementById("input-bag-count").value) || 0;
-
-  // Kiểm tra số bịch đã scan
   if (bagList.length < bagTarget) {
     alert(`❌ Chưa đủ số bịch bù yêu cầu (${bagList.length}/${bagTarget})!`);
     return;
   }
 
-  // Kiểm tra ảnh đã chụp
-  const notCaptured = bagList.filter(b => !b.photoBlob);
+  const notCaptured = bagList.filter((b) => !b.photoBlob);
   if (notCaptured.length > 0) {
     alert(`❌ Còn ${notCaptured.length} bịch chưa chụp ảnh!`);
     return;
   }
 
-  // --- Nếu qua được 2 điều kiện trên thì mới cho phép lưu ---
   btnSave.disabled = true;
-  btnSave.classList.add("opacity-50");
   btnSave.textContent = "⏳ Đang lưu...";
-  status.classList.remove("hidden");
   status.textContent = "🔄 Đang lưu dữ liệu lên Supabase...";
-
 
   try {
     for (const b of bagList) {
-      let photoUrl = null;
-      if (b.photoBlob) {
-        const path = `${b.rpro}/${b.boxNo}_${b.bagNo}_${Date.now()}.jpg`;
-        const { error: uploadError } = await supabase
-          .storage.from("supplement-temp")
-          .upload(path, b.photoBlob, { upsert: true });
-        if (uploadError) throw uploadError;
+      const path = `${b.rpro}/${b.boxNo}_${b.bagNo}_${Date.now()}.jpg`;
+      const { error: uploadError } = await supabase
+        .storage.from("supplement-temp")
+        .upload(path, b.photoBlob, { upsert: true });
+      if (uploadError) throw uploadError;
 
-        const { data: publicUrlData } = supabase
-          .storage.from("supplement-temp")
-          .getPublicUrl(path);
-        photoUrl = publicUrlData.publicUrl;
-      }
+      const { data: publicUrlData } = supabase
+        .storage.from("supplement-temp")
+        .getPublicUrl(path);
 
-      const { error: insertError } = await supabase.from("supplement_scans").insert([{
-        rpro: b.rpro,
-        box_no: b.boxNo,
-        brand_code: currentBox["Brand Code"],
-        customer: currentBox["CUSTOMERS"],
-        molded: currentBox["#MOLDED"],
-        bom: currentBox["BOM"],
-        total_qty: currentBox["Total Qty"],
-        pu: currentBox["PU"],
-        fb: currentBox["FB"],
-        bag_no: b.bagNo,
-        photo_url: photoUrl
-      }]);
-      if (insertError) throw insertError;
+      await supabase.from("supplement_scans").insert([
+        {
+          rpro: b.rpro,
+          box_no: b.boxNo,
+          brand_code: currentBox["Brand Code"],
+          customer: currentBox["CUSTOMERS"],
+          molded: currentBox["#MOLDED"],
+          bom: currentBox["BOM"],
+          total_qty: currentBox["Total Qty"],
+          pu: currentBox["PU"],
+          fb: currentBox["FB"],
+          bag_no: b.bagNo,
+          photo_url: publicUrlData.publicUrl,
+        },
+      ]);
     }
 
     status.textContent = "✅ Đã lưu tất cả bịch vào Supabase!";
@@ -290,7 +261,6 @@ btnSave.addEventListener("click", async () => {
     status.textContent = "❌ Lỗi khi lưu: " + err.message;
   } finally {
     btnSave.disabled = false;
-    btnSave.classList.remove("opacity-50");
     btnSave.textContent = "Lưu Supabase";
   }
 });
