@@ -3,3 +3,4 @@ cd /d "C:\Users\prod.public\Ortholite Vietnam\OVN Production - Documents\PRODUCT
 echo ==== Sync started at %date% %time% ====
 node public/sync-supplement-qr-supabase.js
 echo ==== Sync finished at %date% %time% ====
+pause
