@@ -1,4 +1,4 @@
-import { supabase } from "./supabaseClient.node.js";
+import { supabase } from "./supabaseClient.js";
 
 
 let currentBox = null;
