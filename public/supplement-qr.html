@@ -20,39 +20,55 @@
     }
   </style>
 </head>
-<body class="bg-gray-100 p-6">
-  <div class="max-w-2xl mx-auto bg-white p-4 rounded shadow">
+<body class="bg-gray-100 p-4">
+  <div class="max-w-md mx-auto bg-white p-3 rounded shadow space-y-4">
     <!-- Header -->
-    <div class="flex justify-between items-center mb-6">
-      <h1 class="text-2xl font-bold">Bù Hàng QR</h1>
+    <div class="flex justify-between items-center">
+      <h1 class="text-xl font-bold">Bù Hàng QR</h1>
       <button id="btn-back" class="px-3 py-1 bg-gray-300 hover:bg-gray-400 rounded">
         ← Trang chủ
       </button>
     </div>
 
     <!-- Camera quét QR -->
-    <div id="qr-reader" style="width:80vw; max-width:320px; margin:auto;"></div>
+    <div id="qr-reader" class="w-full max-w-md mx-auto"></div>
     
     <!-- Trạng thái -->
-    <div id="scan-status" class="mb-2 text-blue-600 font-semibold hidden"></div>
+    <div id="scan-status" class="text-blue-600 font-semibold hidden"></div>
+
+    <!-- Khu chụp ảnh ngay dưới camera -->
+    <div id="photo-section" class="hidden flex flex-col items-center space-y-2">
+      <!-- Ảnh preview -->
+      <canvas id="photo-canvas" class="hidden border rounded w-full max-w-xs"></canvas>
+
+      <!-- Nút chụp + chụp lại -->
+      <div class="flex gap-2">
+        <button id="btn-take-photo" class="bg-yellow-500 text-white px-4 py-2 rounded">
+          📸 Chụp ảnh bịch
+        </button>
+        <button id="btn-retake" class="bg-red-500 text-white px-4 py-2 rounded hidden">
+          🔄 Chụp lại
+        </button>
+      </div>
+    </div>
 
     <!-- Nút chuyển chế độ -->
-    <div class="flex gap-2 mt-4">
-      <button id="btn-scan-box" class="bg-blue-500 text-white px-4 py-2 rounded">Chế độ Thùng</button>
-      <button id="btn-scan-bag" class="bg-purple-500 text-white px-4 py-2 rounded">Chế độ Bịch</button>
+    <div class="flex gap-2">
+      <button id="btn-scan-box" class="bg-blue-500 text-white px-4 py-2 rounded flex-1">Chế độ Thùng</button>
+      <button id="btn-scan-bag" class="bg-purple-500 text-white px-4 py-2 rounded flex-1">Chế độ Bịch</button>
     </div>
 
     <!-- Thông tin thùng -->
-    <div id="box-info" class="mt-3 hidden"></div>
+    <div id="box-info" class="hidden text-sm"></div>
 
     <!-- Nhập số liệu -->
-    <div class="mt-4">
-      <label>Số bịch bù:</label>
-      <input type="number" id="input-bag-count" class="border px-2 py-1 w-20" />
+    <div>
+      <label class="block">Số bịch bù:</label>
+      <input type="number" id="input-bag-count" class="border px-2 py-1 w-24" />
     </div>
 
     <!-- Bảng bịch -->
-    <table id="bag-table" class="mt-4 w-full border hidden">
+    <table id="bag-table" class="w-full border hidden text-sm">
       <thead>
         <tr class="bg-gray-100">
           <th class="border px-2">RPRO</th>
@@ -64,17 +80,8 @@
       <tbody></tbody>
     </table>
 
-    <!-- Khu chụp ảnh -->
-    <div id="photo-section" class="hidden text-center mt-4">
-      <video id="photo-video" autoplay playsinline class="w-full max-w-xs border rounded"></video>
-      <canvas id="photo-canvas" class="hidden"></canvas>
-      <button id="btn-take-photo" class="mt-2 bg-yellow-500 text-white px-4 py-2 rounded">
-        📸 Chụp ảnh bịch
-      </button>
-    </div>
-
     <!-- Lưu -->
-    <button id="btn-save" class="mt-4 bg-green-600 text-white px-4 py-2 rounded hidden">
+    <button id="btn-save" class="w-full bg-green-600 text-white px-4 py-2 rounded hidden">
       Lưu Supabase
     </button>
   </div>
