@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bù Hàng QR</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode/minified/html5-qrcode.min.js"></script>
+
+  <style>
+    #qr-reader__dashboard_section_csr,
+    #qr-reader__dashboard_section_swaplink {
+      display: none !important;
+    }
+    #qr-reader video,
+    #qr-reader canvas {
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: cover !important;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 p-6">
+  <div class="max-w-2xl mx-auto bg-white p-4 rounded shadow">
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-6">
+      <h1 class="text-2xl font-bold">Bù Hàng QR</h1>
+      <button id="btn-back" class="px-3 py-1 bg-gray-300 hover:bg-gray-400 rounded">
+        ← Trang chủ
+      </button>
+    </div>
+
+    
+
+    <!-- Camera -->
+    <div id="qr-reader" style="width:80vw; max-width:320px; margin:auto;"></div>
+    
+    <!-- Trạng thái -->
+    <div id="scan-status" class="mb-2 text-blue-600 font-semibold hidden"></div>
+
+    <!-- Nút chuyển chế độ -->
+    <div class="flex gap-2 mt-4">
+      <button id="btn-scan-box" class="bg-blue-500 text-white px-4 py-2 rounded">Chế độ Thùng</button>
+      <button id="btn-scan-bag" class="bg-purple-500 text-white px-4 py-2 rounded">Chế độ Bịch</button>
+    </div>
+
+    <!-- Thông tin thùng -->
+    <div id="box-info" class="mt-3 hidden"></div>
+
+    <!-- Nhập số liệu -->
+    <div class="mt-4">
+      <label>Số bịch bù:</label>
+      <input type="number" id="input-bag-count" class="border px-2 py-1 w-20" />
+      
+    </div>
+
+    <!-- Bảng bịch -->
+    <table id="bag-table" class="mt-4 w-full border hidden">
+      <thead>
+        <tr class="bg-gray-100">
+          <th class="border px-2">RPRO</th>
+          <th class="border px-2">Thùng</th>
+          <th class="border px-2">Bịch</th>
+          <th class="border px-2">Ảnh</th> <!-- thêm cột -->
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <!-- Chụp ảnh -->
+    <button id="btn-capture" class="mt-4 bg-yellow-500 text-white px-4 py-2 rounded">Chụp ảnh bịch</button>
+
+    <!-- Lưu -->
+    <button id="btn-save" class="mt-4 bg-green-600 text-white px-4 py-2 rounded">Lưu Supabase</button>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      document.getElementById("btn-back")
+        .addEventListener("click", () => window.location.href = "/");
+    });
+  </script>
+
+  <script type="module" src="./supabaseClient.js"></script>
+  <script type="module" src="./supplement-qr.js"></script>
+</body>
+</html>
