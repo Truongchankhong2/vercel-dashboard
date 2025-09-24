@@ -1,4 +1,5 @@
-import { supabase } from './supabaseClient.js';
+import { supabase } from "./supabaseClient.node.js";
+
 
 let currentBox = null;
 let bagList = [];

@@ -1,6 +1,6 @@
 // public/sync-supplement-qr-supabase.js
 
-import { supabase } from "./supabaseClient.js";
+import { supabase } from "./supabaseClient.node.js";
 import fs from "fs";
 import path from "path";
 
