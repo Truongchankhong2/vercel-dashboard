@@ -30,9 +30,7 @@
       </button>
     </div>
 
-    
-
-    <!-- Camera -->
+    <!-- Camera quét QR -->
     <div id="qr-reader" style="width:80vw; max-width:320px; margin:auto;"></div>
     
     <!-- Trạng thái -->
@@ -51,7 +49,6 @@
     <div class="mt-4">
       <label>Số bịch bù:</label>
       <input type="number" id="input-bag-count" class="border px-2 py-1 w-20" />
-      
     </div>
 
     <!-- Bảng bịch -->
@@ -61,17 +58,25 @@
           <th class="border px-2">RPRO</th>
           <th class="border px-2">Thùng</th>
           <th class="border px-2">Bịch</th>
-          <th class="border px-2">Ảnh</th> <!-- thêm cột -->
+          <th class="border px-2">Ảnh</th>
         </tr>
       </thead>
       <tbody></tbody>
     </table>
 
-    <!-- Chụp ảnh -->
-    <button id="btn-capture" class="mt-4 bg-yellow-500 text-white px-4 py-2 rounded">Chụp ảnh bịch</button>
+    <!-- Khu chụp ảnh -->
+    <div id="photo-section" class="hidden text-center mt-4">
+      <video id="photo-video" autoplay playsinline class="w-full max-w-xs border rounded"></video>
+      <canvas id="photo-canvas" class="hidden"></canvas>
+      <button id="btn-take-photo" class="mt-2 bg-yellow-500 text-white px-4 py-2 rounded">
+        📸 Chụp ảnh bịch
+      </button>
+    </div>
 
     <!-- Lưu -->
-    <button id="btn-save" class="mt-4 bg-green-600 text-white px-4 py-2 rounded">Lưu Supabase</button>
+    <button id="btn-save" class="mt-4 bg-green-600 text-white px-4 py-2 rounded hidden">
+      Lưu Supabase
+    </button>
   </div>
 
   <script>
@@ -81,6 +86,7 @@
     });
   </script>
 
+  <!-- Script chính -->
   <script type="module" src="./supabaseClient.js"></script>
   <script type="module" src="./supplement-qr.js"></script>
 </body>
