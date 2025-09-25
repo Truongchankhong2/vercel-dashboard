@@ -38,10 +38,7 @@
 
     <!-- Khu chụp ảnh ngay dưới camera -->
     <div id="photo-section" class="hidden flex flex-col items-center space-y-2">
-      <!-- Ảnh preview -->
-      <canvas id="photo-canvas" class="hidden border rounded w-full max-w-xs"></canvas>
-
-      <!-- Nút chụp + chụp lại -->
+      <!-- Nút chụp + chụp lại (ngay dưới camera) -->
       <div class="flex gap-2">
         <button id="btn-take-photo" class="bg-yellow-500 text-white px-4 py-2 rounded">
           📸 Chụp ảnh bịch
@@ -50,7 +47,12 @@
           🔄 Chụp lại
         </button>
       </div>
+
+      <!-- Ảnh preview (nằm dưới nút) -->
+      <canvas id="photo-canvas" class="hidden border rounded w-full max-w-xs"></canvas>
     </div>
+
+
 
     <!-- Nút chuyển chế độ -->
     <div class="flex gap-2">
