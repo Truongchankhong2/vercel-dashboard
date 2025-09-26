@@ -108,6 +108,7 @@ function startScanner() {
 
 // ========== BOX ==========
 
+// ===== BOX =====
 async function handleBoxQR(qr) {
   allowScan = false;
   setStatus("🔄 Đang xử lý QR thùng...");
@@ -116,25 +117,42 @@ async function handleBoxQR(qr) {
   const rpro = parts[1]?.trim();
   const boxNo = parts[2] ? parts[2].split("/")[0].trim() : null;
 
-  const res = await fetch("/powerapp.json");
-  const { data } = await res.json();
-  const rec = data.find(r => r["PRO ODER"] === rpro);
-  if (!rec) {
-    setStatus("❌ Không tìm thấy đơn " + rpro);
+  try {
+    const res = await fetch("/powerapp.json");
+    const { data } = await res.json();
+    const rec = data.find(r => r["PRO ODER"] === rpro);
+
+    if (!rec) {
+      setStatus("❌ Không tìm thấy đơn " + rpro);
+      allowScan = true;
+      return;
+    }
+
+    currentBox = { rpro, boxNo, ...rec };
+    setStatus("✅ Đã quét thùng: " + rpro);
+
+    // 👉 Hiển thị đầy đủ thông tin
+    document.getElementById("box-info").innerHTML = `
+      <p><b>RPRO:</b> ${rpro}</p>
+      <p><b>Thùng:</b> ${boxNo}</p>
+      <p><b>Customer:</b> ${rec["CUSTOMERS"] || "-"}</p>
+      <p><b>Brand:</b> ${rec["Brand Code"] || "-"}</p>
+      <p><b>#MOLDED:</b> ${rec["#MOLDED"] || "-"}</p>
+      <p><b>Total Qty:</b> ${rec["Total Qty"] || "-"}</p>
+      <p><b>BOM:</b> ${rec["BOM"] || "-"}</p>
+      <p><b>PU:</b> ${rec["PU"] || "-"}</p>
+      <p><b>FB:</b> ${rec["FB"] || "-"}</p>
+    `;
+    document.getElementById("box-info").classList.remove("hidden");
+
+  } catch (e) {
+    console.error(e);
+    setStatus("❌ Lỗi đọc dữ liệu đơn!");
+  } finally {
     allowScan = true;
-    return;
   }
-
-  currentBox = { rpro, boxNo, ...rec };
-  setStatus("✅ Đã quét thùng: " + rpro);
-  document.getElementById("box-info").innerHTML =
-    `<p><b>RPRO:</b> ${rpro}</p><p><b>Thùng:</b> ${boxNo}</p>`;
-  document.getElementById("box-info").classList.remove("hidden");
-
-  updateSaveButton();
-  updateAllowScan();
-  allowScan = true;
 }
+
 
 // ========== BAG ==========
 
