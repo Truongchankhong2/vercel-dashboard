@@ -22,7 +22,6 @@
 </head>
 <body class="bg-gray-100 p-4">
   <div class="max-w-md mx-auto bg-white p-3 rounded shadow space-y-4">
-    <!-- Header -->
     <div class="flex justify-between items-center">
       <h1 class="text-xl font-bold">Bù Hàng QR</h1>
       <button id="btn-back" class="px-3 py-1 bg-gray-300 hover:bg-gray-400 rounded">
@@ -30,15 +29,21 @@
       </button>
     </div>
 
-    <!-- Camera quét QR -->
+    <div id="query-section" class="border p-3 rounded bg-gray-100 space-y-2">
+        <h2 class="font-bold text-sm">Truy vấn lịch sử ảnh</h2>
+        <div class="flex gap-2">
+            <input id="queryRpro" type="text" placeholder="Nhập RPRO" class="flex-1 border px-2 py-1 rounded text-sm"/>
+            <button id="btn-query-rpro" class="bg-blue-500 text-white px-3 py-1 rounded text-sm">
+                Truy vấn
+            </button>
+        </div>
+        <div id="query-result" class="text-sm"></div>
+    </div>
     <div id="qr-reader" class="w-full max-w-md mx-auto"></div>
     
-    <!-- Trạng thái -->
     <div id="scan-status" class="text-blue-600 font-semibold hidden"></div>
 
-    <!-- Khu chụp ảnh ngay dưới camera -->
     <div id="photo-section" class="hidden flex flex-col items-center space-y-2">
-      <!-- Nút chụp + chụp lại (ngay dưới camera) -->
       <div class="flex gap-2">
         <button id="btn-take-photo" class="bg-yellow-500 text-white px-4 py-2 rounded">
           📸 Chụp ảnh bịch
@@ -48,41 +53,37 @@
         </button>
       </div>
 
-      <!-- Ảnh preview (nằm dưới nút) -->
       <canvas id="photo-canvas" class="hidden border rounded w-full max-w-xs"></canvas>
     </div>
 
 
 
-    <!-- Nút chuyển chế độ -->
     <div class="flex gap-2">
       <button id="btn-scan-box" class="bg-blue-500 text-white px-4 py-2 rounded flex-1">Chế độ Scan Thùng</button>
       <button id="btn-scan-bag" class="bg-purple-500 text-white px-4 py-2 rounded flex-1">Chế độ Scan Bịch</button>
     </div>
 
-    <!-- Thông tin thùng -->
     <div id="box-info" class="hidden text-sm"></div>
 
-    <!-- Nhập số liệu -->
     <div>
       <label class="block">Số bịch bù:</label>
       <input type="number" id="input-bag-count" class="border px-2 py-1 w-24" />
     </div>
 
-    <!-- Bảng bịch -->
     <table id="bag-table" class="w-full border hidden text-sm">
       <thead>
         <tr class="bg-gray-100">
           <th class="border px-2">RPRO</th>
           <th class="border px-2">Thùng</th>
-          <th class="border px-2">Bịch</th>
           <th class="border px-2">Ảnh</th>
+          <th class="border px-2">Trạng thái</th>
+          <th class="border px-2">Preview</th> <th class="border px-2">Thao tác</th>
         </tr>
       </thead>
       <tbody></tbody>
     </table>
 
-    <!-- Lưu -->
+
     <button id="btn-save" class="w-full bg-green-600 text-white px-4 py-2 rounded hidden">
       Lưu Supabase
     </button>
@@ -95,7 +96,6 @@
     });
   </script>
 
-  <!-- Script chính -->
   <script type="module" src="./supabaseClient.js"></script>
   <script type="module" src="./supplement-qr.js"></script>
 </body>
