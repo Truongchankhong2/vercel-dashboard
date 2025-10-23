@@ -3,6 +3,7 @@ const { createClient } = require('@supabase/supabase-js');
 const XLSX = require('xlsx');
 const fs = require('fs');
 const { DateTime } = require("luxon");
+
 // === 1. Khai báo Supabase ===
 const supabase = createClient(
   'https://ixdtdrbytwdmnlqgunzu.supabase.co',     // 🔁 Thay bằng URL của bạn
@@ -12,62 +13,41 @@ const supabase = createClient(
 // === 2. Danh sách cột Size (tên cột trong Excel) ===
 const excelSizeList = [
   "1", "1.5", "2", "2.5", "3", "3.5", "4", "4.5", "5", "5.5", "6", "6.5",
-  "7", "7.5", "8", "8.5", "9", "9.5", "10", "10.5", "11", "11.5", "12", "12.5",
-  "13", "13.5", "14", "14.5", "15", "15.5", "16", "16.5", "17", "17.5", "18", "18.5",
-  "19", "19.5", "20", "20.5", "21", "22", "23", "24", "25", "26", "27", "28",
-  "29", "30", "31", "32", "33", "34", "35", "36", "37", "38", "39", "40",
-  "41", "42", "43", "44", "45", "46", "47", "48", "49", "50", "134.9mm*355mm", "134.9mm*355mm"
+  "7", "7.5", "8", "8.5", "9", "9.5", "10", "10.5", "11", "11.5",
+  "12", "12.5", "13", "13.5", "14", "14.5", "15", "15.5", "16", "16.5",
+  "17", "17.5", "18", "18.5", "19", "19.5", "20"
 ];
 
-// === 3. Chuyển Supabase key sang cột Excel (size_7_5 → 7.5) ===
-function normalizeToExcel(sizeKey) {
-  return sizeKey.replace("size_", "").replace("_", ".");
-}
+// === 3. Hàm chính ===
+async function exportSupplementToExcel() {
+  console.log("Đang tải file template...");
+  const templatePath = './template/template_supplement.xlsx';
+  const templateBuf = fs.readFileSync(templatePath);
+  const wb = XLSX.read(templateBuf, { type: 'buffer' });
+  const sheetName = wb.SheetNames[0];
+  const sheet = wb.Sheets[sheetName];
 
-// === 4. Đồng bộ Supabase → Excel ===
-async function syncToExcel() {
+  // (Bỏ qua 2 dòng header)
+  let startRow = 3;
+
+  console.log("Đang lấy dữ liệu từ Supabase...");
   const { data, error } = await supabase
     .from('supplement')
     .select('*')
-    .order('id', { ascending: true });
+    .order('created_at', { ascending: false });
 
   if (error) {
-    console.error("❌ Lỗi Supabase:", error.message);
+    console.error("Lỗi khi lấy dữ liệu:", error);
     return;
   }
 
-  // Mở file Excel
-  const filePath = './data/Supplement.xlsx';
-  if (!fs.existsSync(filePath)) {
-    console.error("❌ Không tìm thấy file:", filePath);
-    return;
-  }
+  console.log(`Lấy thành công ${data.length} dòng.`);
 
-  const workbook = XLSX.readFile(filePath);
-  const sheetName = workbook.SheetNames[0]; // "Supplement"
-  const sheet = workbook.Sheets[sheetName];
-
-  if (!sheet || !sheet['!ref']) {
-    console.error("❌ Sheet không tồn tại hoặc không có dữ liệu.");
-    return;
-  }
-
+  // Xóa các dòng cũ (nếu có)
   const range = XLSX.utils.decode_range(sheet['!ref']);
-
-  // 🧹 XÓA TẤT CẢ DÒNG DỮ LIỆU CŨ (TỪ DÒNG 2 TRỞ XUỐNG)
-  const clearRange = XLSX.utils.decode_range(sheet['!ref']);
-  for (let r = 1; r <= clearRange.e.r; r++) {
-    for (let c = 0; c <= clearRange.e.c; c++) {
-      const cellAddress = XLSX.utils.encode_cell({ r, c });
-      delete sheet[cellAddress];
-    }
+  for (let R = range.e.r; R >= startRow -1; R--) {
+    delete sheet[R];
   }
-
-  let startRow = 2; // Bắt đầu từ dòng 2 (sau header)
-
-    while (sheet[`A${startRow}`]) {
-      startRow++;
-    }
 
   for (const row of data) {
     // 👉 Chuyển UTC → giờ Việt Nam (cộng 7 tiếng)
@@ -82,7 +62,7 @@ async function syncToExcel() {
       A: row.rpro || '',
       B: row.gender || '',
       C: row.mold || '',
-      D: row.tool || '',
+      D: row.tool || '',    // (Lưu ý: code frontend ko có cột 'tool', cột này sẽ rỗng)
       E: row.fabric || '',
       F: row.bom || '',
       G: row.total || 0,
@@ -91,6 +71,7 @@ async function syncToExcel() {
 
     // 👉 Bắt đầu từ cột I (index 8)
     excelSizeList.forEach((size, idx) => {
+      // SỬA LỖI NULL: Thêm lại hàm chuẩn hóa key
       const key = `size_${size.replace('.', '_')}`;
       const val = row[key] || 0;
       const colLetter = XLSX.utils.encode_col(8 + idx);  // I = col 8
@@ -101,24 +82,22 @@ async function syncToExcel() {
     Object.entries(rowData).forEach(([col, val]) => {
       const cellAddress = `${col}${startRow}`;
       sheet[cellAddress] = {
-        t: typeof val === 'number' ? 'n' : 's',
+        t: (typeof val === 'number') ? 'n' : 's',
         v: val
       };
     });
-
     startRow++;
   }
 
-  // Cập nhật lại phạm vi sheet
-  const newRange = XLSX.utils.encode_range({
-    s: { c: 0, r: 0 },
-    e: { c: 7 + excelSizeList.length, r: startRow - 1 }
-  });
-  sheet['!ref'] = newRange;
+  // Cập nhật lại range
+  range.e.r = startRow - 1;
+  sheet['!ref'] = XLSX.utils.encode_range(range);
 
-  // Ghi file
-  XLSX.writeFile(workbook, filePath);
-  console.log(`✅ Đã đồng bộ ${data.length} dòng từ Supabase → Excel`);
+  // === 4. Ghi file ===
+  const outPath = './public/SUPPLEMENT_EXPORT.xlsx';
+  XLSX.writeFile(wb, outPath);
+  console.log(`✅ Xuất file thành công: ${outPath}`);
 }
 
-syncToExcel();
+// Chạy hàm
+exportSupplementToExcel();
