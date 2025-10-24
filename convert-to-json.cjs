@@ -104,7 +104,7 @@ const newToOldMapping = {
   'M. LEANLINE(PLAN)':'LEANLINE PLAN',
   'LAMINATION MACHINE (REALTIME)': 'LAMINATION MACHINE (REALTIME)',
   'LEANLINE (REALTIME)': 'LEANLINE (REALTIME)',
-  'DL-XG':'Delay/Urgent',
+  'DL-XG':'Delay-Urgent',
 
 };
 

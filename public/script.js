@@ -703,55 +703,68 @@ function renderSectionButtons() {
   hideProgressSearchBar();
   container.innerHTML = '';
 
-  // Vẽ lại Section buttons
+  // Làm mới thanh chọn section
   const sectionBarEl = document.getElementById('section-bar');
   if (sectionBarEl) sectionBarEl.innerHTML = '';
   renderSectionButtons();
 
   try {
-    // 1) Lấy JSON và chỉ lấy mảng data
-    const res  = await fetch('/powerapp.json', { cache: 'no-store' });
+    const res = await fetch('/powerapp.json', { cache: 'no-store' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
     const data = json.data;
 
-    // 2) Xác định statusKeys
-    let statusKeys;
-    if (selectedSection === 'LEANLINE_DC') {
-      statusKeys = ['5.LEAN LINE DC', '6.IN LEAN LINE DC'];
-    } else {
-      statusKeys = [`2.${selectedSection.toUpperCase()}`];
-    }
+    // 🧩 Chọn cột máy và trạng thái cần lọc
+    const planKey =
+      selectedSection === 'LEANLINE_DC'
+        ? 'LEANLINE PLAN'
+        : 'LAMINATION MACHINE (PLAN)';
 
-    // 3) Chọn cột Plan Machine
-    const planKey = selectedSection === 'LEANLINE_DC'
-      ? 'LEANLINE PLAN'
-      : 'LAMINATION MACHINE (PLAN)';
+    const statusFilter =
+      selectedSection === 'LEANLINE_DC'
+        ? '6.WIP IN LEAN LINE'
+        : '2.MATERIAL CHƯA DÁN';
 
-    // 4) Gom nhóm theo máy và tính tổng Qty + Sheet (DL PU)
-    const machines    = {};
+    // 🧩 Tên cột Delay/Urgent (đúng như JSON)
+    const delayKey = 'Delay-Urgent';
+
+    // 🧩 Gom nhóm dữ liệu
+    const machines = {};
+    const delayCounts = {};
     const sheetCounts = {};
+
     data.forEach(row => {
-      const status  = (row['STATUS'] || '').toUpperCase();
       const machine = row[planKey];
-      const qty     = Number(row['Total Qty']) || 0;
-      const sheets  = Number(row['DL PU'])     || 0;
-      if (statusKeys.includes(status) && machine) {
+      const status = (row['STATUS'] || '').trim().toUpperCase();
+      const delayFlag = (row[delayKey] || '').trim().toUpperCase();
+      const qty = Number(row['Total Qty']) || 0;
+      const sheets = Number(row['DL PU']) || 0;
+
+      // ✅ 1. Cộng tổng kế hoạch theo Status (QUANTITY PAIR PLAN)
+      if (status === statusFilter.toUpperCase() && machine) {
         machines[machine] = (machines[machine] || 0) + qty;
         if (selectedSection === 'LAMINATION') {
           sheetCounts[machine] = (sheetCounts[machine] || 0) + sheets;
         }
       }
+
+      // ✅ 2. Cộng tổng Delay/Urgent theo DelayFlag
+      if (
+        machine &&
+        ['PRODUCTION DELAY', 'URGENT'].includes(delayFlag)
+      ) {
+        delayCounts[machine] = (delayCounts[machine] || 0) + qty;
+      }
     });
 
-    // 5) Build HTML bảng Summary
+    // 🧮 Render bảng
     let html = `
       <table class="min-w-full text-sm border border-gray-300 bg-white shadow">
         <thead class="bg-gray-100">
           <tr>
             <th class="px-6 py-3 text-left">MACHINE</th>
             <th class="px-6 py-3 text-right">QUANTITY PAIR PLAN</th>
-            <th class="px-6 py-3 text-right">Delay/Urgent</th>
+            <th class="px-6 py-3 text-right text-red-600">Delay/Urgent</th>
             ${selectedSection === 'LAMINATION'
               ? `<th class="px-6 py-3 text-right">SỐ TẤM (SHEET)</th>`
               : ''}
@@ -760,39 +773,45 @@ function renderSectionButtons() {
         <tbody>
     `;
 
-    let totalQty         = 0;
-    let totalSheets      = 0;
-    let totalDelayUrgent = 0;
+    let totalQty = 0;
+    let totalDelay = 0;
+    let totalSheets = 0;
 
-    Object.keys(machines).sort().forEach(machine => {
-      const qty   = machines[machine];
-      const sh    = sheetCounts[machine] || 0;
-      const duQty = getDelayUrgentQty(machine, data);
-      totalQty        += qty;
-      totalSheets     += sh;
-      totalDelayUrgent+= duQty;
+    Object.keys({ ...machines, ...delayCounts })
+      .sort()
+      .forEach(machine => {
+        const qty = machines[machine] || 0;
+        const delay = delayCounts[machine] || 0;
+        const sheets = sheetCounts[machine] || 0;
 
-      html += `
-        <tr class="hover:bg-gray-50 cursor-pointer" data-machine="${machine}">
-          <td class="px-6 py-3 text-sm text-gray-700">${machine}</td>
-          <td class="px-6 py-3 text-sm text-gray-900 text-right">${formatNumber(qty)}</td>
-          <td class="px-6 py-3 text-sm text-right text-red-600 font-semibold">${formatNumber(duQty)}</td>
-          ${selectedSection === 'LAMINATION'
-            ? `<td class="px-6 py-3 text-sm text-gray-900 text-right">${formatNumber(sh)}</td>`
-            : ''}
-        </tr>
-      `;
-    });
+        totalQty += qty;
+        totalDelay += delay;
+        totalSheets += sheets;
 
-    // Dòng tổng cộng
+        html += `
+          <tr class="hover:bg-gray-50 cursor-pointer" data-machine="${machine}">
+            <td class="px-6 py-3 text-sm text-gray-700">${machine}</td>
+            <td class="px-6 py-3 text-sm text-gray-900 text-right">${formatNumber(qty)}</td>
+            <td class="px-6 py-3 text-sm text-right text-red-600 font-semibold">${formatNumber(delay)}</td>
+            ${
+              selectedSection === 'LAMINATION'
+                ? `<td class="px-6 py-3 text-sm text-gray-900 text-right">${formatNumber(sheets)}</td>`
+                : ''
+            }
+          </tr>
+        `;
+      });
+
     html += `
         <tr class="font-bold bg-gray-100">
-          <td class="px-6 py-3 text-sm text-gray-700 text-right">Tổng cộng:</td>
-          <td class="px-6 py-3 text-sm text-gray-900 text-right">${formatNumber(totalQty)}</td>
-          <td class="px-6 py-3 text-sm text-right text-red-600 font-semibold">${formatNumber(totalDelayUrgent)}</td>
-          ${selectedSection === 'LAMINATION'
-            ? `<td class="px-6 py-3 text-sm text-gray-900 text-right">${formatNumber(totalSheets)}</td>`
-            : ''}
+          <td class="px-6 py-3 text-right">Tổng cộng:</td>
+          <td class="px-6 py-3 text-right">${formatNumber(totalQty)}</td>
+          <td class="px-6 py-3 text-right text-red-600 font-semibold">${formatNumber(totalDelay)}</td>
+          ${
+            selectedSection === 'LAMINATION'
+              ? `<td class="px-6 py-3 text-right">${formatNumber(totalSheets)}</td>`
+              : ''
+          }
         </tr>
       </tbody>
       </table>
@@ -800,7 +819,7 @@ function renderSectionButtons() {
 
     container.innerHTML = html;
 
-    // 6) Bắt event click để show detail
+    // Gắn sự kiện click xem chi tiết máy
     container.querySelectorAll('tbody tr[data-machine]').forEach(row =>
       row.addEventListener('click', () => {
         const m = row.getAttribute('data-machine');
@@ -808,21 +827,19 @@ function renderSectionButtons() {
       })
     );
 
+    console.log(`✅ Summary hiển thị cho ${selectedSection}, STATUS = ${statusFilter}, cột Delay/Urgent = ${delayKey}`);
+
   } catch (err) {
     console.error('[renderSummarySection error]', err);
     container.innerHTML = `
       <div class="text-red-500 py-4">
-        Lỗi tải dữ liệu section
+        ⚠️ Lỗi tải dữ liệu section
       </div>
     `;
   } finally {
     setBtnLoading(btnSummary, false);
   }
 }
-
-
-
-
 
 
 // ==== Đăng ký sự kiện ====
