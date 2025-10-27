@@ -13,7 +13,15 @@ let existingRecord = null;
 function normalizeSizeKey(size) {
   return 'size_' + size.replace(/\./g, '_');
 }
-
+// ==================== HÀM KIỂM TRA SIZE FIX CÓ THẬT SỰ KHÁC KHÔNG ==================== //
+function checkHasRealSizeFix(originalSizes, femaleSizes) {
+  if (!originalSizes || !femaleSizes) return false;
+  if (originalSizes.length !== femaleSizes.length) return true;
+  for (let i = 0; i < originalSizes.length; i++) {
+    if (originalSizes[i] !== femaleSizes[i]) return true; // chỉ cần 1 size khác là coi như có giảm size
+  }
+  return false; // tất cả giống nhau → không giảm size
+}
 // ==================== GHI LOG VISIT ==================== //
 async function logVisit(page, button = null) {
   const today = new Date().toISOString().slice(0, 10);
@@ -250,6 +258,28 @@ window.addEventListener("DOMContentLoaded", () => {
       const genderVal = document.getElementById("info-gender").textContent.trim();
       const remarkNote = document.getElementById("note-textarea").value.trim();
 
+      // === Tạo remark đúng theo thực tế ===
+      let remarkValue = "";
+      if (genderVal === "Women's" && useSizeFix && showSizeFixValues) {
+        const originalSizes = headersArr
+          .filter(h => !isNaN(parseFloat(h)))
+          .map(s => s.trim())
+          .filter(Boolean)
+          .sort((a, b) => parseFloat(a) - parseFloat(b))
+          .filter(s => Number(rawRecord[s]) > 0)
+          .map(s => s.toString());
+
+        const femaleSizes = Object.keys(sizeFixData)
+          .map(s => parseFloat(s))
+          .filter(n => !isNaN(n))
+          .sort((a, b) => a - b)
+          .map(n => n.toString());
+
+        if (checkHasRealSizeFix(originalSizes, femaleSizes)) {
+          remarkValue = "Size fixed";
+        }
+      }
+
       const payload = {
         rpro: currentRpro,
         so: document.getElementById("info-so").textContent,
@@ -260,9 +290,10 @@ window.addEventListener("DOMContentLoaded", () => {
         fabric: document.getElementById("info-fabric").textContent,
         bom: document.getElementById("info-bom").textContent,
         total: Number(document.getElementById("supp-total").textContent) || 0,
-        remark: (genderVal === "Women's" && useSizeFix && showSizeFixValues) ? "Size fixed" : "",
+        remark: remarkValue, // ✅ chỉ ghi "Size fixed" khi có giảm thật
         remark2: remarkNote
       };
+
 
       const inputs = document.querySelectorAll(".input-supp");
       console.log("🔍 Số ô nhập tìm thấy:", inputs.length);
