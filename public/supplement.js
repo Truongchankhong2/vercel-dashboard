@@ -275,10 +275,9 @@ window.addEventListener("DOMContentLoaded", () => {
         let remarkValue = "";
         if (
           genderVal === "Women's" &&
-          useSizeFix &&
           showSizeFixValues &&
           !removedSizeFix // ✅ nếu đã bấm "Bỏ giảm size" thì không ghi chú nữa
-        ) {
+        ){
           const originalSizes = headersArr
             .filter(h => !isNaN(parseFloat(h)))
             .map(s => s.trim())
