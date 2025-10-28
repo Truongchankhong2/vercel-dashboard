@@ -378,7 +378,7 @@ window.addEventListener("DOMContentLoaded", () => {
           document.getElementById("size-table-container").innerHTML = "";
           document.getElementById("order-info").classList.add("hidden");
           document.getElementById("btn-confirm-supplement").disabled = true;
-          alert("🔍 Sẵn sàng quét đơn mới!");
+          
         } else {
           // ⏸ Ở lại đơn hiện tại
           console.log("🟢 Người dùng chọn ở lại đơn hiện tại.");
