@@ -225,11 +225,11 @@ function cancelSizeFix() {
     if (cell.textContent?.includes("Size nữ") || cell.closest("thead")) return;
     cell.textContent = ""; // Xoá nội dung cột Size nữ
   });
-  window.cancelSizeFix = cancelSizeFix;
+  
   
   alert("✅ Đã bỏ giảm size. Khi lưu, hệ thống sẽ không ghi chú 'Size fixed'.");
 }
-
+window.cancelSizeFix = cancelSizeFix;
 
 
 
