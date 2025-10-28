@@ -257,7 +257,42 @@ function handleScanned(text) {
   }
   loadOrderInfo(rpro);
 }
+async function askNextAction() {
+  return new Promise((resolve) => {
+    const dialog = document.createElement("div");
+    dialog.className = "fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50";
+    dialog.innerHTML = `
+      <div class="bg-white rounded-lg shadow-lg p-6 w-[320px] text-center">
+        <div class="text-lg font-semibold text-gray-800 mb-4">
+          ✅ Đã lưu bù hàng thành công!
+        </div>
+        <div class="text-gray-700 mb-5">
+          Bạn muốn quét qua đơn mới không hay ở lại đơn vừa quét?
+        </div>
+        <div class="flex justify-around">
+          <button id="btn-new-order"
+            class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-3 py-1 rounded">
+            Quét đơn mới
+          </button>
+          <button id="btn-stay"
+            class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold px-3 py-1 rounded">
+            Ở lại
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(dialog);
 
+    dialog.querySelector("#btn-new-order").addEventListener("click", () => {
+      dialog.remove();
+      resolve("new");
+    });
+    dialog.querySelector("#btn-stay").addEventListener("click", () => {
+      dialog.remove();
+      resolve("stay");
+    });
+  });
+}
 // ==================== DOM EVENT ==================== //
 window.addEventListener("DOMContentLoaded", () => {
   logVisit("Supplement");
@@ -334,7 +369,21 @@ window.addEventListener("DOMContentLoaded", () => {
           .upsert([payload], { onConflict: "rpro" });
 
         if (error) throw error;
-        alert("✅ Đã lưu bù hàng thành công!");
+
+        // ✅ Gọi popup xác nhận hành động tiếp theo
+        const action = await askNextAction();
+        if (action === "new") {
+          // 🧹 Reset form & quay về màn hình quét
+          document.getElementById("manualRpro").value = "";
+          document.getElementById("size-table-container").innerHTML = "";
+          document.getElementById("order-info").classList.add("hidden");
+          document.getElementById("btn-confirm-supplement").disabled = true;
+          alert("🔍 Sẵn sàng quét đơn mới!");
+        } else {
+          // ⏸ Ở lại đơn hiện tại
+          console.log("🟢 Người dùng chọn ở lại đơn hiện tại.");
+        }
+
         logVisit("Supplement", "Confirm");
       } catch (err) {
         alert("❌ Lỗi khi lưu: " + err.message);
@@ -342,6 +391,8 @@ window.addEventListener("DOMContentLoaded", () => {
       }
     });
 });
+
+
 
 // ==================== KHỞI TẠO QR ==================== //
 window.addEventListener("load", () => {
