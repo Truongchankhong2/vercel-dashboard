@@ -8,6 +8,7 @@ let showSizeFixValues = true;
 let rawRecord = null;
 let sizeFixData = {};
 let existingRecord = null;
+let removedSizeFix = false; // ✅ Đánh dấu đã bấm nút Bỏ giảm size
 
 // ==================== HÀM CHUẨN HÓA SIZE ==================== //
 function normalizeSizeKey(size) {
@@ -215,9 +216,19 @@ function renderOrder(rec, existing = null) {
   document.getElementById("btn-confirm-supplement").disabled = false;
 }
 function cancelSizeFix() {
+  removedSizeFix = true; // ✅ đánh dấu người dùng đã bỏ giảm size
   showSizeFixValues = false;
-  renderOrder(rawRecord, existingRecord);
+
+  // Ẩn cột "Size nữ" ngay trên giao diện
+  const femaleCells = document.querySelectorAll("td:nth-child(2), th:nth-child(2)");
+  femaleCells.forEach(cell => {
+    if (cell.textContent?.includes("Size nữ") || cell.closest("thead")) return;
+    cell.textContent = ""; // Xoá nội dung cột Size nữ
+  });
+
+  alert("✅ Đã bỏ giảm size. Khi lưu, hệ thống sẽ không ghi chú 'Size fixed'.");
 }
+
 
 
 
@@ -259,26 +270,33 @@ window.addEventListener("DOMContentLoaded", () => {
       const remarkNote = document.getElementById("note-textarea").value.trim();
 
       // === Tạo remark đúng theo thực tế ===
-      let remarkValue = "";
-      if (genderVal === "Women's" && useSizeFix && showSizeFixValues) {
-        const originalSizes = headersArr
-          .filter(h => !isNaN(parseFloat(h)))
-          .map(s => s.trim())
-          .filter(Boolean)
-          .sort((a, b) => parseFloat(a) - parseFloat(b))
-          .filter(s => Number(rawRecord[s]) > 0)
-          .map(s => s.toString());
 
-        const femaleSizes = Object.keys(sizeFixData)
-          .map(s => parseFloat(s))
-          .filter(n => !isNaN(n))
-          .sort((a, b) => a - b)
-          .map(n => n.toString());
+        let remarkValue = "";
+        if (
+          genderVal === "Women's" &&
+          useSizeFix &&
+          showSizeFixValues &&
+          !removedSizeFix // ✅ nếu đã bấm "Bỏ giảm size" thì không ghi chú nữa
+        ) {
+          const originalSizes = headersArr
+            .filter(h => !isNaN(parseFloat(h)))
+            .map(s => s.trim())
+            .filter(Boolean)
+            .sort((a, b) => parseFloat(a) - parseFloat(b))
+            .filter(s => Number(rawRecord[s]) > 0)
+            .map(s => s.toString());
 
-        if (checkHasRealSizeFix(originalSizes, femaleSizes)) {
-          remarkValue = "Size fixed";
+          const femaleSizes = Object.keys(sizeFixData)
+            .map(s => parseFloat(s))
+            .filter(n => !isNaN(n))
+            .sort((a, b) => a - b)
+            .map(n => n.toString());
+
+          if (checkHasRealSizeFix(originalSizes, femaleSizes)) {
+            remarkValue = "Size fixed";
+          }
         }
-      }
+
 
       const payload = {
         rpro: currentRpro,
